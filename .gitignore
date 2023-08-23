@@ -130,3 +130,4 @@ dist
 .pnp.*
 build/
 index.js
+index.cjs

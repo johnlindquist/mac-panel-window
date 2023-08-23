@@ -80,6 +80,12 @@ NAN_METHOD(MakePanel) {
   miniaturizeButton.hidden = YES;
   zoomButton.hidden = YES;
 
+  NSVisualEffectView *visualEffectView = [[NSVisualEffectView alloc] initWithFrame:mainContentView.bounds];
+  visualEffectView.material = NSVisualEffectMaterialHUDWindow;
+  visualEffectView.blendingMode = NSVisualEffectBlendingModeBehindWindow;
+
+  [mainContentView addSubview:visualEffectView positioned:NSWindowBelow relativeTo:nil];
+
   object_setClass(mainContentView.window, [PROPanel class]);
 
   return info.GetReturnValue().Set(true);
