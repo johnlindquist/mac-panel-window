@@ -2,7 +2,7 @@
 #import <Foundation/Foundation.h>
 #import <AppKit/AppKit.h>
 #import <objc/objc-runtime.h>
-#include "node_modules/nan/nan.h"
+#include "nan.h"
 
 NAN_METHOD(MakePanel);
 NAN_METHOD(MakeKeyWindow);
