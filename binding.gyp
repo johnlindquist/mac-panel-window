@@ -14,8 +14,7 @@
                 ],
             'libraries': [],
             'dependencies': [
-            "<!(node -p \"require('node-addon-api').gyp\")",
-            "<!(node -p \"require('nan')\")",
+            "<!(node -p \"require('node-addon-api').gyp\")"
             ],
             "xcode_settings": {
                 "OTHER_CPLUSPLUSFLAGS" : ["-stdlib=libc++", "-fobjc-arc"],
