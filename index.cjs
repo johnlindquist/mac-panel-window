@@ -35,22 +35,22 @@ __export(mac_panel_window_exports, {
 });
 module.exports = __toCommonJS(mac_panel_window_exports);
 var import_bindings = __toESM(require("bindings"), 1);
-var NativeExtension = (0, import_bindings.default)("mac-panel-window.node");
+var addon = (0, import_bindings.default)("mac-panel-window.node");
 var isMac = process.platform === "darwin";
 var makeKeyWindow = (window) => {
   if (!isMac)
     return;
-  return NativeExtension.MakeKeyWindow(window.getNativeWindowHandle());
+  return addon.MakeKeyWindow(window.getNativeWindowHandle());
 };
 var makePanel = (window) => {
   if (!isMac)
     return;
-  return NativeExtension.MakePanel(window.getNativeWindowHandle());
+  return addon.MakePanel(window.getNativeWindowHandle());
 };
 var makeWindow = (window) => {
   if (!isMac)
     return;
-  return NativeExtension.MakeWindow(window.getNativeWindowHandle());
+  return addon.MakeWindow(window.getNativeWindowHandle());
 };
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {

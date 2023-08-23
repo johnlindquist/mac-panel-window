@@ -68,14 +68,23 @@ NAN_METHOD(MakePanel) {
   nswindow.titlebarAppearsTransparent = true;
   nswindow.titleVisibility = (NSWindowTitleVisibility)1;
 
-  [nswindow standardWindowButton:NSWindowCloseButton].hidden = YES;
-  [nswindow standardWindowButton:NSWindowMiniaturizeButton].hidden = YES;
-  [nswindow standardWindowButton:NSWindowZoomButton].hidden = YES;
+  NSButton *closeButton = [nswindow standardWindowButton:NSWindowCloseButton];
+  NSButton *miniaturizeButton = [nswindow standardWindowButton:NSWindowMiniaturizeButton];
+  NSButton *zoomButton = [nswindow standardWindowButton:NSWindowZoomButton];
+
+  closeButton.enabled = NO;
+  miniaturizeButton.enabled = NO;
+  zoomButton.enabled = NO;
+
+  closeButton.hidden = YES;
+  miniaturizeButton.hidden = YES;
+  zoomButton.hidden = YES;
 
   object_setClass(mainContentView.window, [PROPanel class]);
 
   return info.GetReturnValue().Set(true);
 }
+
 
 NAN_METHOD(MakeKeyWindow) {
   v8::Local<v8::Object> handleBuffer = info[0].As<v8::Object>();
