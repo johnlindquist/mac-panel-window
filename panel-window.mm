@@ -15,9 +15,23 @@ NAN_METHOD(MakeWindow);
 - (NSWindowStyleMask)styleMask {
   return NSWindowStyleMaskTexturedBackground | NSWindowStyleMaskResizable | NSWindowStyleMaskFullSizeContentView | NSWindowStyleMaskNonactivatingPanel;
 }
+
+
 - (NSWindowCollectionBehavior)collectionBehavior {
-  return NSWindowCollectionBehaviorCanJoinAllSpaces | NSWindowCollectionBehaviorFullScreenAuxiliary;
+  // NSWindowCollectionBehaviorCanJoinAllSpaces: The window appears in all spaces. The menu bar behaves as it does in an inactive space.
+  // NSWindowCollectionBehaviorFullScreenAuxiliary: The window appears in the corresponding space when the app’s main window is displayed full screen. You typically set this property on a window that you want to show as a floating palette window.
+  // NSWindowCollectionBehaviorMoveToActiveSpace: The window is automatically moved to the active space when activated. Useful for keeping auxiliary windows in front, but without activating them.
+  // NSWindowCollectionBehaviorTransient: The window is automatically hidden when the app is deactivated. This is useful for palette windows to prevent them from floating above other apps.
+  // NSWindowCollectionBehaviorManaged: The window participates in spaces and Exposé. Use for document windows and dialogs.
+  return NSWindowCollectionBehaviorCanJoinAllSpaces | NSWindowCollectionBehaviorFullScreenAuxiliary | NSWindowCollectionBehaviorMoveToActiveSpace | NSWindowCollectionBehaviorTransient | NSWindowCollectionBehaviorManaged;
+  // Possible other options:
+  // NSWindowCollectionBehaviorDefault: The default behavior.
+  // NSWindowCollectionBehaviorParticipatesInCycle: The window participates in the window cycle (see the cycleWindows: method).
+  // NSWindowCollectionBehaviorIgnoresCycle: The window is not part of the window cycle and is unaffected by the cycleWindows: method.
+  // NSWindowCollectionBehaviorStationary: The window is unaffected by Exposé and remains visible and stationary, like the desktop window.
+  // NSWindowCollectionBehaviorSynchronized: The window synchronizes drawing with other synchronized windows on the screen.
 }
+
 - (BOOL)isFloatingPanel {
   return YES;
 }
@@ -90,7 +104,6 @@ NAN_METHOD(MakePanel) {
 
   return info.GetReturnValue().Set(true);
 }
-
 
 NAN_METHOD(MakeKeyWindow) {
   v8::Local<v8::Object> handleBuffer = info[0].As<v8::Object>();
