@@ -37,12 +37,15 @@ NAN_METHOD(MakeWindow);
 - (BOOL)acceptsFirstResponder {
   return YES;
 }
+- (void)removeObserver:(NSObject *)observer forKeyPath:(NSString *)keyPath context:(nullable void *)context {
+  if ([keyPath isEqualToString:@"_titlebarBackdropGroupName"]) {
+    return;
+  }
 
-- (void)swizzled_setAlwaysOnTop:(BOOL)flag {
-  if (flag) {
-    [self setLevel:NSStatusWindowLevel];
+  if (context) {
+    [super removeObserver:observer forKeyPath:keyPath context:context];
   } else {
-    [self setLevel:NSNormalWindowLevel];
+    [super removeObserver:observer forKeyPath:keyPath];
   }
 }
 - (void)removeObserver:(NSObject *)observer forKeyPath:(NSString *)keyPath {
@@ -86,10 +89,6 @@ NAN_METHOD(MakePanel) {
 
   object_setClass(mainContentView.window, [PROPanel class]);
 
-  Method originalMethod = class_getInstanceMethod(electronWindowClass, @selector(setAlwaysOnTop:));
-  Method swizzledMethod = class_getInstanceMethod([PROPanel class], @selector(swizzled_setAlwaysOnTop:));
-  method_exchangeImplementations(originalMethod, swizzledMethod);
-
   return info.GetReturnValue().Set(true);
 }
 
@@ -122,10 +121,45 @@ NAN_METHOD(MakeWindow) {
   return info.GetReturnValue().Set(true);
 }
 
+NAN_METHOD(SetAlwaysOnTop) {
+  v8::Local<v8::Object> handleBuffer = info[0].As<v8::Object>();
+  char* buffer = node::Buffer::Data(handleBuffer);
+  void *viewPointer = *reinterpret_cast<void**>(buffer);
+  NSView *mainContentView = (__bridge NSView *)viewPointer;
+  NSString *levelName = [NSString stringWithUTF8String: *Nan::Utf8String(info[1])];
+  int relativeLevel = info[2]->IntegerValue(Nan::GetCurrentContext()).FromJust();
+
+  if (!mainContentView)
+      return info.GetReturnValue().Set(false);
+
+  int level = NSNormalWindowLevel;
+  if ([levelName isEqualToString:@"floating"]) {
+    level = NSFloatingWindowLevel;
+  } else if ([levelName isEqualToString:@"torn-off-menu"]) {
+    level = NSTornOffMenuWindowLevel;
+  } else if ([levelName isEqualToString:@"modal-panel"]) {
+    level = NSModalPanelWindowLevel;
+  } else if ([levelName isEqualToString:@"main-menu"]) {
+    level = NSMainMenuWindowLevel;
+  } else if ([levelName isEqualToString:@"status"]) {
+    level = NSStatusWindowLevel;
+  } else if ([levelName isEqualToString:@"pop-up-menu"]) {
+    level = NSPopUpMenuWindowLevel;
+  } else if ([levelName isEqualToString:@"screen-saver"]) {
+    level = NSScreenSaverWindowLevel;
+  }
+
+  [mainContentView.window setLevel: level + relativeLevel];
+  
+  return info.GetReturnValue().Set(true);
+}
+
+
 void Init(v8::Local<v8::Object> exports) {
   Nan::SetMethod(exports, "makePanel", MakePanel);
   Nan::SetMethod(exports, "makeKeyWindow", MakeKeyWindow);
   Nan::SetMethod(exports, "makeWindow", MakeWindow);
+  Nan::SetMethod(exports, "setAlwaysOnTop", SetAlwaysOnTop);
 }
 
 NODE_MODULE(addon, Init)
