@@ -37,15 +37,12 @@ NAN_METHOD(MakeWindow);
 - (BOOL)acceptsFirstResponder {
   return YES;
 }
-- (void)removeObserver:(NSObject *)observer forKeyPath:(NSString *)keyPath context:(nullable void *)context {
-  if ([keyPath isEqualToString:@"_titlebarBackdropGroupName"]) {
-    return;
-  }
 
-  if (context) {
-    [super removeObserver:observer forKeyPath:keyPath context:context];
+- (void)swizzled_setAlwaysOnTop:(BOOL)flag {
+  if (flag) {
+    [self setLevel:NSStatusWindowLevel];
   } else {
-    [super removeObserver:observer forKeyPath:keyPath];
+    [self setLevel:NSNormalWindowLevel];
   }
 }
 - (void)removeObserver:(NSObject *)observer forKeyPath:(NSString *)keyPath {
@@ -88,6 +85,10 @@ NAN_METHOD(MakePanel) {
   [mainContentView addSubview:visualEffectView positioned:NSWindowBelow relativeTo:nil];
 
   object_setClass(mainContentView.window, [PROPanel class]);
+
+  Method originalMethod = class_getInstanceMethod(electronWindowClass, @selector(setAlwaysOnTop:));
+  Method swizzledMethod = class_getInstanceMethod([PROPanel class], @selector(swizzled_setAlwaysOnTop:));
+  method_exchangeImplementations(originalMethod, swizzledMethod);
 
   return info.GetReturnValue().Set(true);
 }
