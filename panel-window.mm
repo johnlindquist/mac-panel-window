@@ -126,33 +126,17 @@ NAN_METHOD(SetAlwaysOnTop) {
   char* buffer = node::Buffer::Data(handleBuffer);
   void *viewPointer = *reinterpret_cast<void**>(buffer);
   NSView *mainContentView = (__bridge NSView *)viewPointer;
-  NSString *levelName = [NSString stringWithUTF8String: *Nan::Utf8String(info[1])];
-  int relativeLevel = info[2]->IntegerValue(Nan::GetCurrentContext()).FromJust();
+  bool shouldSet = Nan::To<bool>(info[1]).FromJust();
 
   if (!mainContentView)
       return info.GetReturnValue().Set(false);
 
-  int level = NSNormalWindowLevel;
-  if ([levelName isEqualToString:@"floating"]) {
-    level = NSFloatingWindowLevel;
-  } else if ([levelName isEqualToString:@"torn-off-menu"]) {
-    level = NSTornOffMenuWindowLevel;
-  } else if ([levelName isEqualToString:@"modal-panel"]) {
-    level = NSModalPanelWindowLevel;
-  } else if ([levelName isEqualToString:@"main-menu"]) {
-    level = NSMainMenuWindowLevel;
-  } else if ([levelName isEqualToString:@"status"]) {
-    level = NSStatusWindowLevel;
-  } else if ([levelName isEqualToString:@"pop-up-menu"]) {
-    level = NSPopUpMenuWindowLevel;
-  } else if ([levelName isEqualToString:@"screen-saver"]) {
-    level = NSScreenSaverWindowLevel;
-  }
-
-  [mainContentView.window setLevel: level + relativeLevel];
+  int level = shouldSet ? NSFloatingWindowLevel : NSNormalWindowLevel;
+  [mainContentView.window setLevel:level];
   
   return info.GetReturnValue().Set(true);
 }
+
 
 
 void Init(v8::Local<v8::Object> exports) {
