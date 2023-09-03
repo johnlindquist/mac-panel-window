@@ -16,7 +16,7 @@ NAN_METHOD(MakeWindow);
   return NSWindowStyleMaskTexturedBackground | NSWindowStyleMaskResizable | NSWindowStyleMaskFullSizeContentView | NSWindowStyleMaskNonactivatingPanel;
 }
 - (NSWindowCollectionBehavior)collectionBehavior {
-  return NSWindowCollectionBehaviorTransient | NSWindowCollectionBehaviorCanJoinAllSpaces | NSWindowCollectionBehaviorFullScreenAuxiliary;
+  return NSWindowCollectionBehaviorManaged | NSWindowCollectionBehaviorCanJoinAllSpaces | NSWindowCollectionBehaviorFullScreenAuxiliary;
 }
 
 - (BOOL)canBecomeKeyWindow {
