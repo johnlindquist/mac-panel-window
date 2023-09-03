@@ -15,9 +15,6 @@ NAN_METHOD(MakeWindow);
 - (NSWindowStyleMask)styleMask {
   return NSWindowStyleMaskTexturedBackground | NSWindowStyleMaskResizable | NSWindowStyleMaskFullSizeContentView | NSWindowStyleMaskNonactivatingPanel;
 }
-- (NSWindowCollectionBehavior)collectionBehavior {
-  return NSWindowCollectionBehaviorManaged | NSWindowCollectionBehaviorFullScreenAuxiliary;
-}
 
 - (BOOL)canBecomeKeyWindow {
   return YES;
@@ -50,6 +47,34 @@ NAN_METHOD(MakeWindow);
 - (void)removeObserver:(NSObject *)observer forKeyPath:(NSString *)keyPath {
   [self removeObserver:observer forKeyPath:keyPath context:NULL];
 }
+
+- (void) observeWindowLevel {
+    [self addObserver:self forKeyPath:@"level" options:NSKeyValueObservingOptionNew context:NULL];
+    NSLog(@"Started observing window level");
+}
+
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
+    if ([keyPath isEqualToString:@"level"]) {
+        NSInteger newLevel = [[change objectForKey:NSKeyValueChangeNewKey] integerValue];
+        NSLog(@"observeValueForKeyPath: Window level changed to %ld", (long)newLevel);
+
+        NSWindowCollectionBehavior currentBehavior = self.collectionBehavior;
+        NSLog(@"observeValueForKeyPath: Current collectionBehavior before change: %ld", (long)currentBehavior);
+        
+        if (newLevel == NSNormalWindowLevel) {
+            NSLog(@"observeValueForKeyPath: Window changed to 'NSNormalWindowLevel'");
+            self.collectionBehavior = NSWindowCollectionBehaviorManaged | NSWindowCollectionBehaviorFullScreenAuxiliary;
+        }else{
+            NSLog(@"observeValueForKeyPath: Window changed to 'NSPopUpMenuWindowLevel'");
+            self.collectionBehavior = NSWindowCollectionBehaviorManaged | NSWindowCollectionBehaviorCanJoinAllSpaces | NSWindowCollectionBehaviorFullScreenAuxiliary;
+        }
+        
+        NSWindowCollectionBehavior newBehavior = self.collectionBehavior;
+        NSLog(@"observeValueForKeyPath: New collectionBehavior after change: %ld", (long)newBehavior);
+    }
+}
+
+
 @end
 
 Class electronWindowClass;
@@ -92,6 +117,9 @@ NAN_METHOD(MakePanel) {
   [mainContentView addSubview:visualEffectView positioned:NSWindowBelow relativeTo:nil];
 
   object_setClass(mainContentView.window, [PROPanel class]);
+
+  PROPanel *proPanel = (PROPanel *)mainContentView.window;
+  [proPanel observeWindowLevel];  // This will start observing when you call MakePanel
 
   return info.GetReturnValue().Set(true);
 }
