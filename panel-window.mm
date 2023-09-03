@@ -7,14 +7,27 @@
 NAN_METHOD(MakePanel);
 NAN_METHOD(MakeKeyWindow);
 NAN_METHOD(MakeWindow);
+NAN_METHOD(SetShouldAlwaysBeOnTop);
 
 @interface PROPanel : NSWindow
+- (void)setShouldAlwaysBeOnTop:(BOOL)value;
 @end
 
-@implementation PROPanel
+@implementation PROPanel {
+    BOOL shouldAlwaysBeOnTop;
+}
+
+- (void)setShouldAlwaysBeOnTop:(BOOL)value {
+    shouldAlwaysBeOnTop = value;
+}
+- (NSWindowLevel)level {
+    return shouldAlwaysBeOnTop ? NSFloatingWindowLevel : NSNormalWindowLevel;
+}
+
 - (NSWindowStyleMask)styleMask {
   return NSWindowStyleMaskTexturedBackground | NSWindowStyleMaskResizable | NSWindowStyleMaskFullSizeContentView | NSWindowStyleMaskNonactivatingPanel;
 }
+
 - (NSWindowCollectionBehavior)collectionBehavior {
   return NSWindowCollectionBehaviorTransient | NSWindowCollectionBehaviorCanJoinAllSpaces | NSWindowCollectionBehaviorFullScreenAuxiliary;
 }
@@ -22,21 +35,23 @@ NAN_METHOD(MakeWindow);
 - (BOOL)isFloatingPanel {
   return YES;
 }
-- (NSWindowLevel)level {
-  return NSFloatingWindowLevel;
-}
+
 - (BOOL)canBecomeKeyWindow {
   return YES;
 }
+
 - (BOOL)canBecomeMainWindow {
   return YES;
 }
+
 - (BOOL)needsPanelToBecomeKey {
   return YES;
 }
+
 - (BOOL)acceptsFirstResponder {
   return YES;
 }
+
 - (void)removeObserver:(NSObject *)observer forKeyPath:(NSString *)keyPath context:(nullable void *)context {
   if ([keyPath isEqualToString:@"_titlebarBackdropGroupName"]) {
     return;
@@ -48,6 +63,7 @@ NAN_METHOD(MakeWindow);
     [super removeObserver:observer forKeyPath:keyPath];
   }
 }
+
 - (void)removeObserver:(NSObject *)observer forKeyPath:(NSString *)keyPath {
   [self removeObserver:observer forKeyPath:keyPath context:NULL];
 }
@@ -121,29 +137,27 @@ NAN_METHOD(MakeWindow) {
   return info.GetReturnValue().Set(true);
 }
 
-NAN_METHOD(SetAlwaysOnTop) {
-  v8::Local<v8::Object> handleBuffer = info[0].As<v8::Object>();
-  char* buffer = node::Buffer::Data(handleBuffer);
-  void *viewPointer = *reinterpret_cast<void**>(buffer);
-  NSView *mainContentView = (__bridge NSView *)viewPointer;
-  bool shouldSet = Nan::To<bool>(info[1]).FromJust();
+NAN_METHOD(SetShouldAlwaysBeOnTop) {
+    v8::Local<v8::Object> handleBuffer = info[0].As<v8::Object>();
+    char* buffer = node::Buffer::Data(handleBuffer);
+    void *viewPointer = *reinterpret_cast<void**>(buffer);
+    NSView *mainContentView = (__bridge NSView *)viewPointer;
 
-  if (!mainContentView)
-      return info.GetReturnValue().Set(false);
+    if (!mainContentView)
+        return info.GetReturnValue().Set(false);
 
-  int level = shouldSet ? NSFloatingWindowLevel : NSNormalWindowLevel;
-  [mainContentView.window setLevel:level];
-  
-  return info.GetReturnValue().Set(true);
+    PROPanel *panel = (PROPanel *)mainContentView.window;
+    BOOL flag = info[1]->BooleanValue(Nan::GetCurrentContext()->GetIsolate());
+    [panel setShouldAlwaysBeOnTop:flag];
+
+    return info.GetReturnValue().Set(true);
 }
 
-
-
 void Init(v8::Local<v8::Object> exports) {
-  Nan::SetMethod(exports, "makePanel", MakePanel);
-  Nan::SetMethod(exports, "makeKeyWindow", MakeKeyWindow);
-  Nan::SetMethod(exports, "makeWindow", MakeWindow);
-  Nan::SetMethod(exports, "setAlwaysOnTop", SetAlwaysOnTop);
+    Nan::SetMethod(exports, "makePanel", MakePanel);
+    Nan::SetMethod(exports, "makeKeyWindow", MakeKeyWindow);
+    Nan::SetMethod(exports, "makeWindow", MakeWindow);
+    Nan::SetMethod(exports, "setAlwaysOnTop", SetShouldAlwaysBeOnTop);
 }
 
 NODE_MODULE(addon, Init)
