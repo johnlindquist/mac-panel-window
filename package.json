@@ -42,6 +42,7 @@
     "build-cjs": "esbuild index.ts --bundle --platform=node --target=node18 --format=cjs --packages=external  --outfile=index.cjs",
     "build-d.ts": "tsc index.ts --emitDeclarationOnly -d",
     "build": "npm run build-gyp && npm run build-esm && npm run build-cjs && npm run build-d.ts",
+    "electron-rebuild": "npm run build && npx electron-rebuild -e ~/dev/kitapp/node_modules/electron",
     "test": "node test/test.js"
   },
   "os": [

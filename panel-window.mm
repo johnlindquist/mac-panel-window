@@ -7,33 +7,16 @@
 NAN_METHOD(MakePanel);
 NAN_METHOD(MakeKeyWindow);
 NAN_METHOD(MakeWindow);
-NAN_METHOD(SetShouldAlwaysBeOnTop);
 
 @interface PROPanel : NSWindow
-- (void)setShouldAlwaysBeOnTop:(BOOL)value;
 @end
 
-@implementation PROPanel {
-    BOOL shouldAlwaysBeOnTop;
-}
-
-- (void)setShouldAlwaysBeOnTop:(BOOL)value {
-    shouldAlwaysBeOnTop = value;
-}
-- (NSWindowLevel)level {
-    return shouldAlwaysBeOnTop ? NSFloatingWindowLevel : NSNormalWindowLevel;
-}
-
+@implementation PROPanel
 - (NSWindowStyleMask)styleMask {
   return NSWindowStyleMaskTexturedBackground | NSWindowStyleMaskResizable | NSWindowStyleMaskFullSizeContentView | NSWindowStyleMaskNonactivatingPanel;
 }
-
 - (NSWindowCollectionBehavior)collectionBehavior {
   return NSWindowCollectionBehaviorTransient | NSWindowCollectionBehaviorCanJoinAllSpaces | NSWindowCollectionBehaviorFullScreenAuxiliary;
-}
-
-- (BOOL)isFloatingPanel {
-  return YES;
 }
 
 - (BOOL)canBecomeKeyWindow {
@@ -98,7 +81,12 @@ NAN_METHOD(MakePanel) {
   zoomButton.hidden = YES;
 
   NSVisualEffectView *visualEffectView = [[NSVisualEffectView alloc] initWithFrame:mainContentView.bounds];
+  if (@available(macOS 10.14, *)) {
   visualEffectView.material = NSVisualEffectMaterialHUDWindow;
+} else {
+  // Fallback for earlier versions
+}
+
   visualEffectView.blendingMode = NSVisualEffectBlendingModeBehindWindow;
 
   [mainContentView addSubview:visualEffectView positioned:NSWindowBelow relativeTo:nil];
@@ -137,27 +125,10 @@ NAN_METHOD(MakeWindow) {
   return info.GetReturnValue().Set(true);
 }
 
-NAN_METHOD(SetShouldAlwaysBeOnTop) {
-    v8::Local<v8::Object> handleBuffer = info[0].As<v8::Object>();
-    char* buffer = node::Buffer::Data(handleBuffer);
-    void *viewPointer = *reinterpret_cast<void**>(buffer);
-    NSView *mainContentView = (__bridge NSView *)viewPointer;
-
-    if (!mainContentView)
-        return info.GetReturnValue().Set(false);
-
-    PROPanel *panel = (PROPanel *)mainContentView.window;
-    BOOL flag = info[1]->BooleanValue(Nan::GetCurrentContext()->GetIsolate());
-    [panel setShouldAlwaysBeOnTop:flag];
-
-    return info.GetReturnValue().Set(true);
-}
-
 void Init(v8::Local<v8::Object> exports) {
-    Nan::SetMethod(exports, "makePanel", MakePanel);
-    Nan::SetMethod(exports, "makeKeyWindow", MakeKeyWindow);
-    Nan::SetMethod(exports, "makeWindow", MakeWindow);
-    Nan::SetMethod(exports, "setAlwaysOnTop", SetShouldAlwaysBeOnTop);
+  Nan::SetMethod(exports, "makePanel", MakePanel);
+  Nan::SetMethod(exports, "makeKeyWindow", MakeKeyWindow);
+  Nan::SetMethod(exports, "makeWindow", MakeWindow);
 }
 
 NODE_MODULE(addon, Init)
