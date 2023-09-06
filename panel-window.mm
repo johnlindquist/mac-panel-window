@@ -9,9 +9,20 @@ NAN_METHOD(MakeKeyWindow);
 NAN_METHOD(MakeWindow);
 
 @interface PROPanel : NSWindow
+@property (nonatomic, assign) NSInteger previousLevel;
 @end
 
 @implementation PROPanel
+
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+        _previousLevel = NSNormalWindowLevel;
+    }
+    return self;
+}
+
+
 - (NSWindowStyleMask)styleMask {
   return NSWindowStyleMaskTexturedBackground | NSWindowStyleMaskResizable | NSWindowStyleMaskFullSizeContentView | NSWindowStyleMaskNonactivatingPanel;
 }
@@ -56,23 +67,34 @@ NAN_METHOD(MakeWindow);
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
     if ([keyPath isEqualToString:@"level"]) {
         NSInteger newLevel = [[change objectForKey:NSKeyValueChangeNewKey] integerValue];
-        NSLog(@"observeValueForKeyPath: Window level changed to %ld", (long)newLevel);
 
+        if (newLevel == self.previousLevel) {
+            return;
+        }
+
+        self.previousLevel = newLevel;
+        
         NSWindowCollectionBehavior currentBehavior = self.collectionBehavior;
-        NSLog(@"observeValueForKeyPath: Current collectionBehavior before change: %ld", (long)currentBehavior);
+        NSWindowCollectionBehavior newBehavior;
         
         if (newLevel == NSNormalWindowLevel) {
-            NSLog(@"observeValueForKeyPath: Window changed to 'NSNormalWindowLevel'");
-            self.collectionBehavior = NSWindowCollectionBehaviorManaged | NSWindowCollectionBehaviorFullScreenAuxiliary;
-        }else{
-            NSLog(@"observeValueForKeyPath: Window changed to 'NSPopUpMenuWindowLevel'");
-            self.collectionBehavior = NSWindowCollectionBehaviorManaged | NSWindowCollectionBehaviorCanJoinAllSpaces | NSWindowCollectionBehaviorFullScreenAuxiliary;
+            newBehavior = NSWindowCollectionBehaviorManaged | NSWindowCollectionBehaviorFullScreenAuxiliary;
+        } else {
+            newBehavior = NSWindowCollectionBehaviorManaged | NSWindowCollectionBehaviorCanJoinAllSpaces | NSWindowCollectionBehaviorFullScreenAuxiliary;
         }
-        
-        NSWindowCollectionBehavior newBehavior = self.collectionBehavior;
-        NSLog(@"observeValueForKeyPath: New collectionBehavior after change: %ld", (long)newBehavior);
+
+        if (newBehavior != currentBehavior) {
+            if (newBehavior & NSWindowCollectionBehaviorCanJoinAllSpaces) {
+                NSLog(@"observeValueForKeyPath: ADDING NSWindowCollectionBehaviorCanJoinAllSpaces. Changing collectionBehavior from %ld to %ld", (long)currentBehavior, (long)newBehavior);
+            } else {
+                NSLog(@"observeValueForKeyPath: REMOVING NSWindowCollectionBehaviorCanJoinAllSpaces. Changing collectionBehavior from %ld to %ld", (long)currentBehavior, (long)newBehavior);
+            }
+            self.collectionBehavior = newBehavior;
+        }
     }
 }
+
+
 
 
 @end
