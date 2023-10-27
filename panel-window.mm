@@ -7,6 +7,7 @@
 NAN_METHOD(MakePanel);
 NAN_METHOD(MakeKeyWindow);
 NAN_METHOD(MakeWindow);
+NAN_METHOD(BringToFront);
 
 @interface PROPanel : NSWindow
 @property (nonatomic, assign) NSInteger previousLevel;
@@ -84,6 +85,7 @@ NAN_METHOD(MakeWindow);
         }
 
         if (newBehavior != currentBehavior) {
+            [[NSApplication sharedApplication] activateIgnoringOtherApps:YES];
             if (newBehavior & NSWindowCollectionBehaviorCanJoinAllSpaces) {
                 NSLog(@"observeValueForKeyPath: ADDING NSWindowCollectionBehaviorCanJoinAllSpaces. Changing collectionBehavior from %ld to %ld", (long)currentBehavior, (long)newBehavior);
             } else {
@@ -175,10 +177,26 @@ NAN_METHOD(MakeWindow) {
   return info.GetReturnValue().Set(true);
 }
 
+NAN_METHOD(BringToFront) {
+  v8::Local<v8::Object> handleBuffer = info[0].As<v8::Object>();
+  char* buffer = node::Buffer::Data(handleBuffer);
+  void *viewPointer = *reinterpret_cast<void**>(buffer);
+  NSView *mainContentView = (__bridge NSView *)viewPointer;
+
+  if (!mainContentView)
+      return info.GetReturnValue().Set(false);
+
+  NSWindow *nswindow = [mainContentView window];
+  [nswindow makeKeyAndOrderFront:nil];
+
+  return info.GetReturnValue().Set(true);
+}
+
 void Init(v8::Local<v8::Object> exports) {
   Nan::SetMethod(exports, "makePanel", MakePanel);
   Nan::SetMethod(exports, "makeKeyWindow", MakeKeyWindow);
   Nan::SetMethod(exports, "makeWindow", MakeWindow);
+  Nan::SetMethod(exports, "bringToFront", BringToFront);
 }
 
 NODE_MODULE(addon, Init)

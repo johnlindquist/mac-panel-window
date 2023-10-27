@@ -22,3 +22,8 @@ export const setAlwaysOnTop = (window, shouldSet) => {
   if (!isMac) return
   return addon.setAlwaysOnTop(window.getNativeWindowHandle(), shouldSet)
 }
+
+export const bringToFront = window => {
+  if (!isMac) return
+  return addon.bringToFront(window.getNativeWindowHandle())
+}
