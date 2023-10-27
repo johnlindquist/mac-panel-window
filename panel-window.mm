@@ -85,7 +85,6 @@ NAN_METHOD(BringToFront);
         }
 
         if (newBehavior != currentBehavior) {
-            [[NSApplication sharedApplication] activateIgnoringOtherApps:YES];
             if (newBehavior & NSWindowCollectionBehaviorCanJoinAllSpaces) {
                 NSLog(@"observeValueForKeyPath: ADDING NSWindowCollectionBehaviorCanJoinAllSpaces. Changing collectionBehavior from %ld to %ld", (long)currentBehavior, (long)newBehavior);
             } else {
