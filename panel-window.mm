@@ -86,11 +86,12 @@ NAN_METHOD(BringToFront);
 
         if (newBehavior != currentBehavior) {
             if (newBehavior & NSWindowCollectionBehaviorCanJoinAllSpaces) {
-                NSLog(@"observeValueForKeyPath: ADDING NSWindowCollectionBehaviorCanJoinAllSpaces. Changing collectionBehavior from %ld to %ld", (long)currentBehavior, (long)newBehavior);
+                NSLog(@"observeValueForKeyPath: ADDING NSWindowCollectionBehaviorCanJoinAllSpaces. collectionBehavior from %ld to %ld", (long)currentBehavior, (long)newBehavior);
             } else {
-                NSLog(@"observeValueForKeyPath: REMOVING NSWindowCollectionBehaviorCanJoinAllSpaces. Changing collectionBehavior from %ld to %ld", (long)currentBehavior, (long)newBehavior);
+                NSLog(@"observeValueForKeyPath: REMOVING NSWindowCollectionBehaviorCanJoinAllSpaces. collectionBehavior from %ld to %ld", (long)currentBehavior, (long)newBehavior);
             }
             self.collectionBehavior = newBehavior;
+            [self makeKeyWindow];
         }
     }
 }
