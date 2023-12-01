@@ -25,7 +25,7 @@ NAN_METHOD(BringToFront);
 
 
 - (NSWindowStyleMask)styleMask {
-  return NSWindowStyleMaskTexturedBackground | NSWindowStyleMaskResizable | NSWindowStyleMaskFullSizeContentView | NSWindowStyleMaskNonactivatingPanel;
+    return NSWindowStyleMaskTitled | NSWindowStyleMaskResizable | NSWindowStyleMaskTexturedBackground | NSWindowStyleMaskFullSizeContentView | NSWindowStyleMaskNonactivatingPanel;
 }
 
 - (BOOL)canBecomeKeyWindow {
