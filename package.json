@@ -26,14 +26,16 @@
   "type": "module",
   "devDependencies": {
     "@types/node": "^20.4.5",
+    "electron-rebuild": "^3.2.9",
     "esbuild": "^0.18.17",
+    "node-abi": "^3.52.0",
     "node-gyp": "^10.0.1",
     "semantic-release": "^21.0.7",
     "typescript": "^5.1.6"
   },
   "dependencies": {
     "bindings": "^1.5.0",
-    "nan": "^2.17.0",
+    "nan": "^2.18.0",
     "node-addon-api": "^7.0.0"
   },
   "scripts": {
@@ -42,7 +44,7 @@
     "build-cjs": "esbuild index.ts --bundle --platform=node --target=node18 --format=cjs --packages=external  --outfile=index.cjs",
     "build-d.ts": "tsc index.ts --emitDeclarationOnly -d",
     "build": "npm run build-gyp && npm run build-esm && npm run build-cjs && npm run build-d.ts",
-    "electron-rebuild": "npm run build && npx electron-rebuild -e ~/dev/kitapp/node_modules/electron",
+    "electron-rebuild": "npm run build && electron-rebuild -e ~/dev/kitapp/node_modules/electron",
     "test": "node test/test.js"
   },
   "os": [

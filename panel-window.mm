@@ -15,6 +15,18 @@ NAN_METHOD(BringToFront);
 
 @implementation PROPanel
 
+- (void)willClose {
+    // Perform cleanup before the window closes
+    [self removeObserver:self forKeyPath:@"level"];
+    NSLog(@"Stopped observing window level");
+    
+    // Set the delegate to nil to break any potential retain cycles
+    [self setDelegate:nil];
+    
+    // Additional cleanup if necessary
+}
+
+
 - (instancetype)init {
     self = [super init];
     if (self) {
@@ -192,11 +204,27 @@ NAN_METHOD(BringToFront) {
   return info.GetReturnValue().Set(true);
 }
 
+NAN_METHOD(WillClosePanel) {
+  v8::Local<v8::Object> handleBuffer = info[0].As<v8::Object>();
+  char* buffer = node::Buffer::Data(handleBuffer);
+  void *viewPointer = *reinterpret_cast<void**>(buffer);
+  NSView *mainContentView = (__bridge NSView *)viewPointer;
+
+  if (!mainContentView)
+      return info.GetReturnValue().Set(false);
+
+  PROPanel *proPanel = (PROPanel *)mainContentView.window;
+  [proPanel willClose];
+
+  return info.GetReturnValue().Set(true);
+}
+
 void Init(v8::Local<v8::Object> exports) {
   Nan::SetMethod(exports, "makePanel", MakePanel);
   Nan::SetMethod(exports, "makeKeyWindow", MakeKeyWindow);
   Nan::SetMethod(exports, "makeWindow", MakeWindow);
   Nan::SetMethod(exports, "bringToFront", BringToFront);
+  Nan::SetMethod(exports, "willClosePanel", WillClosePanel);
 }
 
 NODE_MODULE(addon, Init)
