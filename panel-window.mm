@@ -2,40 +2,9 @@
 #import <Foundation/Foundation.h>
 #import <AppKit/AppKit.h>
 #import <objc/objc-runtime.h>
-#include "nan.h"
+#include <nan.h>
 
-NAN_METHOD(MakePanel);
-NAN_METHOD(MakeKeyWindow);
-NAN_METHOD(MakeWindow);
-NAN_METHOD(BringToFront);
-
-@interface PROPanel : NSWindow
-@property (nonatomic, assign) NSInteger previousLevel;
-@end
-
-@implementation PROPanel
-
-- (void)willClose {
-    // Perform cleanup before the window closes
-    [self removeObserver:self forKeyPath:@"level"];
-    NSLog(@"Stopped observing window level");
-    
-    // Set the delegate to nil to break any potential retain cycles
-    [self setDelegate:nil];
-    
-    // Additional cleanup if necessary
-}
-
-
-- (instancetype)init {
-    self = [super init];
-    if (self) {
-        _previousLevel = NSNormalWindowLevel;
-    }
-    return self;
-}
-
-
+ @implementation NSWindow (NSWindowAdditions)
 - (NSWindowStyleMask)styleMask {
     return NSWindowStyleMaskTitled | NSWindowStyleMaskResizable | NSWindowStyleMaskTexturedBackground | NSWindowStyleMaskFullSizeContentView | NSWindowStyleMaskNonactivatingPanel;
 }
@@ -55,77 +24,22 @@ NAN_METHOD(BringToFront);
 - (BOOL)acceptsFirstResponder {
   return YES;
 }
-
-- (void)removeObserver:(NSObject *)observer forKeyPath:(NSString *)keyPath context:(nullable void *)context {
-  if ([keyPath isEqualToString:@"_titlebarBackdropGroupName"]) {
-    return;
-  }
-
-  if (context) {
-    [super removeObserver:observer forKeyPath:keyPath context:context];
-  } else {
-    [super removeObserver:observer forKeyPath:keyPath];
-  }
-}
-
-- (void)removeObserver:(NSObject *)observer forKeyPath:(NSString *)keyPath {
-  [self removeObserver:observer forKeyPath:keyPath context:NULL];
-}
-
-- (void) observeWindowLevel {
-    [self addObserver:self forKeyPath:@"level" options:NSKeyValueObservingOptionNew context:NULL];
-    NSLog(@"Started observing window level");
-}
-
-- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
-    if ([keyPath isEqualToString:@"level"]) {
-        NSInteger newLevel = [[change objectForKey:NSKeyValueChangeNewKey] integerValue];
-
-        if (newLevel == self.previousLevel) {
-            return;
-        }
-
-        self.previousLevel = newLevel;
-        
-        NSWindowCollectionBehavior currentBehavior = self.collectionBehavior;
-        NSWindowCollectionBehavior newBehavior;
-        
-        if (newLevel == NSNormalWindowLevel) {
-            newBehavior = NSWindowCollectionBehaviorManaged | NSWindowCollectionBehaviorFullScreenAuxiliary;
-        } else {
-            newBehavior = NSWindowCollectionBehaviorManaged | NSWindowCollectionBehaviorCanJoinAllSpaces | NSWindowCollectionBehaviorFullScreenAuxiliary;
-        }
-
-        if (newBehavior != currentBehavior) {
-            if (newBehavior & NSWindowCollectionBehaviorCanJoinAllSpaces) {
-                NSLog(@"observeValueForKeyPath: ADDING NSWindowCollectionBehaviorCanJoinAllSpaces. collectionBehavior from %ld to %ld", (long)currentBehavior, (long)newBehavior);
-            } else {
-                NSLog(@"observeValueForKeyPath: REMOVING NSWindowCollectionBehaviorCanJoinAllSpaces. collectionBehavior from %ld to %ld", (long)currentBehavior, (long)newBehavior);
-            }
-            self.collectionBehavior = newBehavior;
-            [self makeKeyWindow];
-        }
-    }
-}
-
-
-
-
 @end
 
-Class electronWindowClass;
-
 NAN_METHOD(MakePanel) {
+  NSLog(@"makePanel");
   v8::Local<v8::Object> handleBuffer = info[0].As<v8::Object>();
   char* buffer = node::Buffer::Data(handleBuffer);
   void *viewPointer = *reinterpret_cast<void**>(buffer);
   NSView *mainContentView = (__bridge NSView *)viewPointer;
 
+
   if (!mainContentView)
       return info.GetReturnValue().Set(false);
 
-  electronWindowClass = [mainContentView.window class];
   NSWindow *nswindow = [mainContentView window];
+
+  mainContentView.window.styleMask |= NSWindowStyleMaskNonactivatingPanel;
   nswindow.titlebarAppearsTransparent = true;
   nswindow.titleVisibility = (NSWindowTitleVisibility)1;
 
@@ -152,15 +66,11 @@ NAN_METHOD(MakePanel) {
 
   [mainContentView addSubview:visualEffectView positioned:NSWindowBelow relativeTo:nil];
 
-  object_setClass(mainContentView.window, [PROPanel class]);
-
-  PROPanel *proPanel = (PROPanel *)mainContentView.window;
-  [proPanel observeWindowLevel];  // This will start observing when you call MakePanel
-
   return info.GetReturnValue().Set(true);
 }
 
 NAN_METHOD(MakeKeyWindow) {
+  NSLog(@"makeKeyWindow");
   v8::Local<v8::Object> handleBuffer = info[0].As<v8::Object>();
   char* buffer = node::Buffer::Data(handleBuffer);
   void *viewPointer = *reinterpret_cast<void**>(buffer);
@@ -169,27 +79,37 @@ NAN_METHOD(MakeKeyWindow) {
   if (!mainContentView)
       return info.GetReturnValue().Set(false);
 
-  [mainContentView.window makeKeyWindow];
-  [mainContentView.window makeMainWindow];
+  [mainContentView.window makeKeyAndOrderFront:nil];
+
+  [mainContentView.window setCollectionBehavior: NSWindowStyleMaskNonactivatingPanel | NSWindowCollectionBehaviorManaged | NSWindowCollectionBehaviorCanJoinAllSpaces | NSWindowCollectionBehaviorFullScreenAuxiliary];
+
+  
+  [mainContentView.window setLevel:NSScreenSaverWindowLevel];
+
   return info.GetReturnValue().Set(true);
 }
+
 
 NAN_METHOD(MakeWindow) {
+  NSLog(@"makeWindow");
   v8::Local<v8::Object> handleBuffer = info[0].As<v8::Object>();
   char* buffer = node::Buffer::Data(handleBuffer);
   void *viewPointer = *reinterpret_cast<void**>(buffer);
   NSView *mainContentView = (__bridge NSView *)viewPointer;
 
+  // Set the collectionBehavior to NSWindowCollectionBehaviorManaged | NSWindowCollectionBehaviorFullScreenAuxiliary;
+  [mainContentView.window setCollectionBehavior: NSWindowCollectionBehaviorManaged | NSWindowCollectionBehaviorFullScreenAuxiliary];
+  [mainContentView.window setLevel:NSNormalWindowLevel];
+
+  NSLog(@"makeWindow: mainContentView: %@", mainContentView);
   if (!mainContentView)
       return info.GetReturnValue().Set(false);
-
-  NSWindow* newWindow = mainContentView.window;
-  object_setClass(newWindow, electronWindowClass);
 
   return info.GetReturnValue().Set(true);
 }
 
-NAN_METHOD(BringToFront) {
+NAN_METHOD(HideInstant) {
+  NSLog(@"hideInstant");
   v8::Local<v8::Object> handleBuffer = info[0].As<v8::Object>();
   char* buffer = node::Buffer::Data(handleBuffer);
   void *viewPointer = *reinterpret_cast<void**>(buffer);
@@ -199,32 +119,17 @@ NAN_METHOD(BringToFront) {
       return info.GetReturnValue().Set(false);
 
   NSWindow *nswindow = [mainContentView window];
-  [nswindow makeKeyAndOrderFront:nil];
+  [nswindow orderOut:nil]; // Immediately hides the window without animation
 
   return info.GetReturnValue().Set(true);
 }
 
-NAN_METHOD(WillClosePanel) {
-  v8::Local<v8::Object> handleBuffer = info[0].As<v8::Object>();
-  char* buffer = node::Buffer::Data(handleBuffer);
-  void *viewPointer = *reinterpret_cast<void**>(buffer);
-  NSView *mainContentView = (__bridge NSView *)viewPointer;
-
-  if (!mainContentView)
-      return info.GetReturnValue().Set(false);
-
-  PROPanel *proPanel = (PROPanel *)mainContentView.window;
-  [proPanel willClose];
-
-  return info.GetReturnValue().Set(true);
-}
 
 void Init(v8::Local<v8::Object> exports) {
   Nan::SetMethod(exports, "makePanel", MakePanel);
   Nan::SetMethod(exports, "makeKeyWindow", MakeKeyWindow);
   Nan::SetMethod(exports, "makeWindow", MakeWindow);
-  Nan::SetMethod(exports, "bringToFront", BringToFront);
-  Nan::SetMethod(exports, "willClosePanel", WillClosePanel);
+  Nan::SetMethod(exports, "hideInstant", HideInstant);
 }
 
 NODE_MODULE(addon, Init)

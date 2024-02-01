@@ -15,20 +15,10 @@ export const makePanel = window => {
 
 export const makeWindow = window => {
   if (!isMac) return
-  return addon.makeKeyWindow(window.getNativeWindowHandle())
+  return addon.makeWindow(window.getNativeWindowHandle())
 }
 
-export const setAlwaysOnTop = (window, shouldSet) => {
+export const hideInstant = window => {
   if (!isMac) return
-  return addon.setAlwaysOnTop(window.getNativeWindowHandle(), shouldSet)
-}
-
-export const bringToFront = window => {
-  if (!isMac) return
-  return addon.bringToFront(window.getNativeWindowHandle())
-}
-
-export const willClosePanel = window => {
-  if (!isMac) return
-  return addon.willClosePanel(window.getNativeWindowHandle())
+  return addon.hideInstant(window.getNativeWindowHandle())
 }
