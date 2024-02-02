@@ -2,7 +2,8 @@
 #import <Foundation/Foundation.h>
 #import <AppKit/AppKit.h>
 #import <objc/objc-runtime.h>
-#include <nan.h>
+#include <napi.h>
+#include <uv.h>
 
  @implementation NSWindow (NSWindowAdditions)
 - (NSWindowStyleMask)styleMask {
@@ -26,16 +27,16 @@
 }
 @end
 
-NAN_METHOD(MakePanel) {
+Napi::Value MakePanel(const Napi::CallbackInfo& info) {
   NSLog(@"makePanel");
-  v8::Local<v8::Object> handleBuffer = info[0].As<v8::Object>();
-  char* buffer = node::Buffer::Data(handleBuffer);
+  Napi::Object handleBuffer = info[0].As<Napi::Object>();
+  char* buffer = handleBuffer.As<Napi::Buffer<char>>().Data();
   void *viewPointer = *reinterpret_cast<void**>(buffer);
   NSView *mainContentView = (__bridge NSView *)viewPointer;
 
 
   if (!mainContentView)
-      return info.GetReturnValue().Set(false);
+      return Napi::Boolean::New(info.Env(), false);
 
   NSWindow *nswindow = [mainContentView window];
 
@@ -66,18 +67,18 @@ NAN_METHOD(MakePanel) {
 
   [mainContentView addSubview:visualEffectView positioned:NSWindowBelow relativeTo:nil];
 
-  return info.GetReturnValue().Set(true);
+  return Napi::Boolean::New(info.Env(), true);
 }
 
-NAN_METHOD(MakeKeyWindow) {
+Napi::Value MakeKeyWindow(const Napi::CallbackInfo& info) {
   NSLog(@"makeKeyWindow");
-  v8::Local<v8::Object> handleBuffer = info[0].As<v8::Object>();
-  char* buffer = node::Buffer::Data(handleBuffer);
+  Napi::Object handleBuffer = info[0].As<Napi::Object>();
+  char* buffer = handleBuffer.As<Napi::Buffer<char>>().Data();
   void *viewPointer = *reinterpret_cast<void**>(buffer);
   NSView *mainContentView = (__bridge NSView *)viewPointer;
 
   if (!mainContentView)
-      return info.GetReturnValue().Set(false);
+       return Napi::Boolean::New(info.Env(), false);
 
   [mainContentView.window makeKeyAndOrderFront:nil];
 
@@ -86,14 +87,14 @@ NAN_METHOD(MakeKeyWindow) {
   
   [mainContentView.window setLevel:NSScreenSaverWindowLevel];
 
-  return info.GetReturnValue().Set(true);
+  return Napi::Boolean::New(info.Env(), true);
 }
 
 
-NAN_METHOD(MakeWindow) {
+Napi::Value MakeWindow(const Napi::CallbackInfo& info) {
   NSLog(@"makeWindow");
-  v8::Local<v8::Object> handleBuffer = info[0].As<v8::Object>();
-  char* buffer = node::Buffer::Data(handleBuffer);
+  Napi::Object handleBuffer = info[0].As<Napi::Object>();
+  char* buffer = handleBuffer.As<Napi::Buffer<char>>().Data();
   void *viewPointer = *reinterpret_cast<void**>(buffer);
   NSView *mainContentView = (__bridge NSView *)viewPointer;
 
@@ -103,33 +104,34 @@ NAN_METHOD(MakeWindow) {
 
   NSLog(@"makeWindow: mainContentView: %@", mainContentView);
   if (!mainContentView)
-      return info.GetReturnValue().Set(false);
+       return Napi::Boolean::New(info.Env(), false);
 
-  return info.GetReturnValue().Set(true);
+  return Napi::Boolean::New(info.Env(), true);
 }
 
-NAN_METHOD(HideInstant) {
+Napi::Value HideInstant(const Napi::CallbackInfo& info) {
   NSLog(@"hideInstant");
-  v8::Local<v8::Object> handleBuffer = info[0].As<v8::Object>();
-  char* buffer = node::Buffer::Data(handleBuffer);
+  Napi::Object handleBuffer = info[0].As<Napi::Object>();
+  char* buffer = handleBuffer.As<Napi::Buffer<char>>().Data();
   void *viewPointer = *reinterpret_cast<void**>(buffer);
   NSView *mainContentView = (__bridge NSView *)viewPointer;
 
   if (!mainContentView)
-      return info.GetReturnValue().Set(false);
+       return Napi::Boolean::New(info.Env(), false);
 
   NSWindow *nswindow = [mainContentView window];
   [nswindow orderOut:nil]; // Immediately hides the window without animation
 
-  return info.GetReturnValue().Set(true);
+  return Napi::Boolean::New(info.Env(), true);
 }
 
 
-void Init(v8::Local<v8::Object> exports) {
-  Nan::SetMethod(exports, "makePanel", MakePanel);
-  Nan::SetMethod(exports, "makeKeyWindow", MakeKeyWindow);
-  Nan::SetMethod(exports, "makeWindow", MakeWindow);
-  Nan::SetMethod(exports, "hideInstant", HideInstant);
+Napi::Object Init(Napi::Env env, Napi::Object exports) {
+  exports.Set(Napi::String::New(env, "makePanel"), Napi::Function::New(env, MakePanel));
+  exports.Set(Napi::String::New(env, "makeKeyWindow"), Napi::Function::New(env, MakeKeyWindow));
+  exports.Set(Napi::String::New(env, "makeWindow"), Napi::Function::New(env, MakeWindow));
+  exports.Set(Napi::String::New(env, "hideInstant"), Napi::Function::New(env, HideInstant));
+  return exports;
 }
 
-NODE_MODULE(addon, Init)
+NODE_API_MODULE(addon, Init)
