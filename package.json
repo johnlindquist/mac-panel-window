@@ -25,17 +25,18 @@
   ],
   "type": "module",
   "devDependencies": {
-    "@types/node": "^20.4.5",
+    "@types/node": "^20.11.30",
+    "electron": "^29.1.5",
     "electron-rebuild": "^3.2.9",
-    "esbuild": "^0.18.17",
-    "node-abi": "^3.52.0",
+    "esbuild": "^0.20.2",
+    "node-abi": "^3.56.0",
     "node-gyp": "^10.0.1",
-    "semantic-release": "^21.0.7",
-    "typescript": "^5.1.6"
+    "semantic-release": "^23.0.5",
+    "typescript": "^5.4.3"
   },
   "dependencies": {
-    "node-addon-api": "7.1.0",
-    "bindings": "^1.5.0"
+    "bindings": "^1.5.0",
+    "node-addon-api": "8.0.0"
   },
   "scripts": {
     "build-gyp": "node-gyp rebuild",
