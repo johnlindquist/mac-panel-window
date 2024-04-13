@@ -8,26 +8,42 @@
 const NSWindowStyleMask kCustomWindowStyleMask = NSWindowStyleMaskTitled | NSWindowStyleMaskResizable | NSWindowStyleMaskTexturedBackground | NSWindowStyleMaskFullSizeContentView | NSWindowStyleMaskNonactivatingPanel;
 const NSWindowCollectionBehavior kCustomWindowCollectionBehavior = NSWindowCollectionBehaviorManaged | NSWindowCollectionBehaviorFullScreenAuxiliary;
 
+@interface NSWindow (NSWindowAdditions)
+@property (nonatomic, assign) BOOL allowsKeyWindow;
+@end
+
 @implementation NSWindow (NSWindowAdditions)
-- (NSWindowStyleMask)styleMask {
-    return kCustomWindowStyleMask;
+
+@dynamic allowsKeyWindow;
+
+- (BOOL)allowsKeyWindow {
+    return objc_getAssociatedObject(self, @selector(allowsKeyWindow));
+}
+
+- (void)setAllowsKeyWindow:(BOOL)allowed {
+    objc_setAssociatedObject(self, @selector(allowsKeyWindow), @(allowed), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
 - (BOOL)canBecomeKeyWindow {
-  return YES;
+    NSNumber *allowsKeyWindowValue = objc_getAssociatedObject(self, @selector(allowsKeyWindow));
+    return [allowsKeyWindowValue boolValue];
 }
 
+// This method allows the window to become the main window, which typically handles user interactions primarily.
 - (BOOL)canBecomeMainWindow {
   return YES;
 }
 
+// This method specifies that the window needs to be a panel to become the key window.
 - (BOOL)needsPanelToBecomeKey {
   return YES;
 }
 
+// This method allows the window to become the first responder, meaning it can be the first to receive many events and actions.
 - (BOOL)acceptsFirstResponder {
   return YES;
 }
+
 @end
 
 @interface NSColor (HexColorAdditions)
@@ -117,6 +133,7 @@ Napi::Value MakePanel(const Napi::CallbackInfo& info) {
 }
 
 Napi::Value MakeKeyWindow(const Napi::CallbackInfo& info) {
+  
   NSLog(@"MAC-PANEL-WINDOW: makeKeyWindow");
   NSView *mainContentView = GetMainContentViewFromArgs(info);
 
@@ -126,6 +143,7 @@ Napi::Value MakeKeyWindow(const Napi::CallbackInfo& info) {
   }
 
   NSWindow *nswindow = CreateWindow(mainContentView);
+  nswindow.allowsKeyWindow = YES; // Allow the window to become key window
 
   [nswindow makeKeyAndOrderFront:nil];
   [nswindow setCollectionBehavior:kCustomWindowCollectionBehavior];
