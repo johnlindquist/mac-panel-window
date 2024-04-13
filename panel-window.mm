@@ -17,7 +17,8 @@ const NSWindowCollectionBehavior kCustomWindowCollectionBehavior = NSWindowColle
 @dynamic allowsKeyWindow;
 
 - (BOOL)allowsKeyWindow {
-    return objc_getAssociatedObject(self, @selector(allowsKeyWindow));
+    NSNumber *value = objc_getAssociatedObject(self, @selector(allowsKeyWindow));
+    return [value boolValue];
 }
 
 - (void)setAllowsKeyWindow:(BOOL)allowed {
