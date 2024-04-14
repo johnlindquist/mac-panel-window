@@ -5,46 +5,23 @@
 #include <napi.h>
 #include <uv.h>
 
-const NSWindowStyleMask kCustomWindowStyleMask = NSWindowStyleMaskTitled | NSWindowStyleMaskResizable | NSWindowStyleMaskTexturedBackground | NSWindowStyleMaskFullSizeContentView | NSWindowStyleMaskNonactivatingPanel;
-const NSWindowCollectionBehavior kCustomWindowCollectionBehavior = NSWindowCollectionBehaviorManaged | NSWindowCollectionBehaviorFullScreenAuxiliary;
+// Define a constant for the window's style combining several options:
+const NSWindowStyleMask kCustomWindowStyleMask = 
+    // NSWindowStyleMaskTitled | // The window will have a title bar.
+    NSWindowStyleMaskResizable | // The window can be resized by the user.
+    NSWindowStyleMaskTexturedBackground | // The window background is textured.
+    NSWindowStyleMaskFullSizeContentView | // The window's content view will be the full size of the window, including the title bar area.
+    NSWindowStyleMaskNonactivatingPanel; // The window does not activate the app when clicked.
 
-@interface NSWindow (NSWindowAdditions)
-@property (nonatomic, assign) BOOL allowsKeyWindow;
-@end
+// Define a constant for the window's collection behavior combining several options:
+const NSWindowCollectionBehavior kCustomWindowCollectionBehavior = 
+  NSWindowCollectionBehaviorManaged | // The window participates in the automatic window management system.
+  NSWindowCollectionBehaviorFullScreenAuxiliary; // The window can appear on spaces designated for full screen applications.
 
 @implementation NSWindow (NSWindowAdditions)
-
-@dynamic allowsKeyWindow;
-
-- (BOOL)allowsKeyWindow {
-    NSNumber *value = objc_getAssociatedObject(self, @selector(allowsKeyWindow));
-    return [value boolValue];
+- (NSWindowStyleMask)styleMask {
+    return kCustomWindowStyleMask;
 }
-
-- (void)setAllowsKeyWindow:(BOOL)allowed {
-    objc_setAssociatedObject(self, @selector(allowsKeyWindow), @(allowed), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-}
-
-- (BOOL)canBecomeKeyWindow {
-    NSNumber *allowsKeyWindowValue = objc_getAssociatedObject(self, @selector(allowsKeyWindow));
-    return [allowsKeyWindowValue boolValue];
-}
-
-// This method allows the window to become the main window, which typically handles user interactions primarily.
-- (BOOL)canBecomeMainWindow {
-  return YES;
-}
-
-// This method specifies that the window needs to be a panel to become the key window.
-- (BOOL)needsPanelToBecomeKey {
-  return YES;
-}
-
-// This method allows the window to become the first responder, meaning it can be the first to receive many events and actions.
-- (BOOL)acceptsFirstResponder {
-  return YES;
-}
-
 @end
 
 @interface NSColor (HexColorAdditions)
@@ -81,7 +58,10 @@ NSWindow* CreateWindow(NSView *mainContentView) {
   NSLog(@"MAC-PANEL-WINDOW: Initial window properties - styleMask: %lu, titlebarAppearsTransparent: %d, titleVisibility: %ld, hasShadow: %d, backgroundColor: %@",
         (unsigned long)nswindow.styleMask, nswindow.titlebarAppearsTransparent, (long)nswindow.titleVisibility, nswindow.hasShadow, nswindow.backgroundColor);
 
-  nswindow.styleMask = kCustomWindowStyleMask;
+  // There was a bug in Electron's Tray where starting with NSWindowStyleMaskTitled caused the initial tray clicks to be ignored.
+  // Moving NSWindowStyleMaskTitled to be added here, instead of in the constant, fixed the issue.
+  // Unfortunately, I don't know.
+  nswindow.styleMask = kCustomWindowStyleMask | NSWindowStyleMaskTitled;
   nswindow.titlebarAppearsTransparent = true;
   nswindow.titleVisibility = (NSWindowTitleVisibility)1;
   nswindow.backgroundColor = [[NSColor windowBackgroundColor] colorWithAlphaComponent:0.15];
@@ -134,7 +114,6 @@ Napi::Value MakePanel(const Napi::CallbackInfo& info) {
 }
 
 Napi::Value MakeKeyWindow(const Napi::CallbackInfo& info) {
-  
   NSLog(@"MAC-PANEL-WINDOW: makeKeyWindow");
   NSView *mainContentView = GetMainContentViewFromArgs(info);
 
@@ -144,7 +123,6 @@ Napi::Value MakeKeyWindow(const Napi::CallbackInfo& info) {
   }
 
   NSWindow *nswindow = CreateWindow(mainContentView);
-  nswindow.allowsKeyWindow = YES; // Allow the window to become key window
 
   [nswindow makeKeyAndOrderFront:nil];
   [nswindow setCollectionBehavior:kCustomWindowCollectionBehavior];
