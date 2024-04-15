@@ -7,7 +7,7 @@
 
 // Define a constant for the window's style combining several options:
 const NSWindowStyleMask kCustomWindowStyleMask = 
-    // NSWindowStyleMaskTitled | // The window will have a title bar.
+    NSWindowStyleMaskTitled | // The window will have a title bar.    
     NSWindowStyleMaskResizable | // The window can be resized by the user.
     NSWindowStyleMaskTexturedBackground | // The window background is textured.
     NSWindowStyleMaskFullSizeContentView | // The window's content view will be the full size of the window, including the title bar area.
@@ -21,6 +21,13 @@ const NSWindowCollectionBehavior kCustomWindowCollectionBehavior =
 @implementation NSWindow (NSWindowAdditions)
 - (NSWindowStyleMask)styleMask {
     return kCustomWindowStyleMask;
+}
+
+// Somehow this allows NSWindowStyleMaskTitled to not interfere with the mouse events on the Tray
+// Even though this doesn't seem to prevent "makeKeyAndOrderFront" from working...
+// I'm just as confused as you are
+- (BOOL)canBecomeKeyWindow {
+    return NO;
 }
 @end
 
@@ -57,11 +64,7 @@ NSWindow* CreateWindow(NSView *mainContentView) {
   NSLog(@"MAC-PANEL-WINDOW: Creating window: %@", nswindow);
   NSLog(@"MAC-PANEL-WINDOW: Initial window properties - styleMask: %lu, titlebarAppearsTransparent: %d, titleVisibility: %ld, hasShadow: %d, backgroundColor: %@",
         (unsigned long)nswindow.styleMask, nswindow.titlebarAppearsTransparent, (long)nswindow.titleVisibility, nswindow.hasShadow, nswindow.backgroundColor);
-
-  // There was a bug in Electron's Tray where starting with NSWindowStyleMaskTitled caused the initial tray clicks to be ignored.
-  // Moving NSWindowStyleMaskTitled to be added here, instead of in the constant, fixed the issue.
-  // Unfortunately, I don't know.
-  nswindow.styleMask = kCustomWindowStyleMask | NSWindowStyleMaskTitled;
+  
   nswindow.titlebarAppearsTransparent = true;
   nswindow.titleVisibility = (NSWindowTitleVisibility)1;
   nswindow.backgroundColor = [[NSColor windowBackgroundColor] colorWithAlphaComponent:0.15];
@@ -125,11 +128,11 @@ Napi::Value MakeKeyWindow(const Napi::CallbackInfo& info) {
   NSWindow *nswindow = CreateWindow(mainContentView);
 
   [nswindow makeKeyAndOrderFront:nil];
+  // Log and verify that this window is a key window:
   [nswindow setCollectionBehavior:kCustomWindowCollectionBehavior];
   [nswindow setLevel:NSScreenSaverWindowLevel];
 
-  NSLog(@"MAC-PANEL-WINDOW: Window made key - window: %@, collectionBehavior: %lu, level: %ld",
-        nswindow, (unsigned long)nswindow.collectionBehavior, (long)nswindow.level);
+  NSLog(@"MAC-PANEL-WINDOW: Window made key - window: %@, isKeyWindow: %d", nswindow, nswindow.isKeyWindow);
 
   return Napi::Boolean::New(info.Env(), true);
 }
