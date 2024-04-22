@@ -18,16 +18,53 @@ const NSWindowCollectionBehavior kCustomWindowCollectionBehavior =
   NSWindowCollectionBehaviorManaged | // The window participates in the automatic window management system.
   NSWindowCollectionBehaviorFullScreenAuxiliary; // The window can appear on spaces designated for full screen applications.
 
-@implementation NSWindow (NSWindowAdditions)
+@interface PROPanel : NSWindow
+@end
+
+@implementation PROPanel
 - (NSWindowStyleMask)styleMask {
-    return kCustomWindowStyleMask;
+  return kCustomWindowStyleMask;
+}
+- (NSWindowCollectionBehavior)collectionBehavior {
+  return kCustomWindowCollectionBehavior;
+}
+- (BOOL)isFloatingPanel {
+  return YES;
+}
+- (NSWindowLevel)level {
+  return NSFloatingWindowLevel;
+}
+- (BOOL)canBecomeKeyWindow {
+  return YES;
+}
+- (BOOL)canBecomeMainWindow {
+  return YES;
+}
+- (BOOL)needsPanelToBecomeKey {
+  return YES;
+}
+- (BOOL)acceptsFirstResponder {
+  return YES;
 }
 
-// Somehow this allows NSWindowStyleMaskTitled to not interfere with the mouse events on the Tray
-// Even though this doesn't seem to prevent "makeKeyAndOrderFront" from working...
-// I'm just as confused as you are
-- (BOOL)canBecomeKeyWindow {
-    return NO;
+- (void)removeObserver:(NSObject *)observer forKeyPath:(NSString *)keyPath context:(nullable void *)context {
+  // macOS Big Sur attempts to remove an observer for the NSTitlebarView that doesn't exist.
+  // This is due to us changing the class from NSWindow -> NSPanel at runtime, it's possible
+  // there is assumed setup that doesn't happen. Details of the exception this is avoiding are
+  // here: https://github.com/goabstract/electron-panel-window/issues/6
+  if ([keyPath isEqualToString:@"_titlebarBackdropGroupName"]) {
+    // NSLog(@"removeObserver ignored");
+    return;
+  }
+
+  if (context) {
+    [super removeObserver:observer forKeyPath:keyPath context:context];
+  } else {
+    [super removeObserver:observer forKeyPath:keyPath];
+  }
+}
+- (void)removeObserver:(NSObject *)observer forKeyPath:(NSString *)keyPath {
+  [self removeObserver:observer forKeyPath:keyPath context:NULL];
 }
 @end
 
@@ -58,13 +95,20 @@ NSView* GetMainContentViewFromArgs(const Napi::CallbackInfo& info) {
   return (__bridge NSView *)viewPointer;
 }
 
-NSWindow* CreateWindow(NSView *mainContentView) {
-  NSWindow *nswindow = [mainContentView window];
+Class electronWindowClass;
 
-  NSLog(@"MAC-PANEL-WINDOW: Creating window: %@", nswindow);
-  NSLog(@"MAC-PANEL-WINDOW: Initial window properties - styleMask: %lu, titlebarAppearsTransparent: %d, titleVisibility: %ld, hasShadow: %d, backgroundColor: %@",
-        (unsigned long)nswindow.styleMask, nswindow.titlebarAppearsTransparent, (long)nswindow.titleVisibility, nswindow.hasShadow, nswindow.backgroundColor);
-  
+Napi::Value MakePanel(const Napi::CallbackInfo& info) {
+  NSLog(@"MAC-PANEL-WINDOW: makePanel");
+  NSView *mainContentView = GetMainContentViewFromArgs(info);
+
+  if (!mainContentView)
+      return Napi::Boolean::New(info.Env(), true);
+
+  electronWindowClass = [mainContentView.window class];
+
+//   NSLog(@"class of main window before = %@", object_getClass(mainContentView.window));
+
+  NSWindow *nswindow = [mainContentView window];
   nswindow.titlebarAppearsTransparent = true;
   nswindow.titleVisibility = (NSWindowTitleVisibility)1;
   nswindow.backgroundColor = [[NSColor windowBackgroundColor] colorWithAlphaComponent:0.15];
@@ -82,36 +126,10 @@ NSWindow* CreateWindow(NSView *mainContentView) {
   miniaturizeButton.hidden = YES;
   zoomButton.hidden = YES;
 
-  NSLog(@"MAC-PANEL-WINDOW: Window created - styleMask: %lu, titlebarAppearsTransparent: %d, titleVisibility: %ld, hasShadow: %d, backgroundColor: %@",
-        (unsigned long)nswindow.styleMask, nswindow.titlebarAppearsTransparent, (long)nswindow.titleVisibility, nswindow.hasShadow, nswindow.backgroundColor);
+//   NSLog(@"stylemask = %ld", mainContentView.window.styleMask);
 
-  return nswindow;
-}
-
-Napi::Value MakePanel(const Napi::CallbackInfo& info) {
-  NSLog(@"MAC-PANEL-WINDOW: makePanel");
-  NSView *mainContentView = GetMainContentViewFromArgs(info);
-
-  if (!mainContentView) {
-    NSLog(@"MAC-PANEL-WINDOW: Error: mainContentView is nil");
-    return Napi::Boolean::New(info.Env(), false);
-  }
-
-  NSWindow *nswindow = CreateWindow(mainContentView);
-
-  NSVisualEffectView *visualEffectView = [[NSVisualEffectView alloc] initWithFrame:mainContentView.bounds];
-  if (@available(macOS 10.14, *)) {
-    visualEffectView.material = NSVisualEffectMaterialHUDWindow;
-  } else {
-    // Fallback for earlier versions
-  }
-
-  visualEffectView.blendingMode = NSVisualEffectBlendingModeBehindWindow;
-
-  [mainContentView addSubview:visualEffectView positioned:NSWindowBelow relativeTo:nil];
-
-  NSLog(@"MAC-PANEL-WINDOW: Panel created - window: %@, visualEffectView material: %ld, blendingMode: %ld",
-        nswindow, (long)visualEffectView.material, (long)visualEffectView.blendingMode);
+  // Convert the NSWindow class to PROPanel
+  object_setClass(mainContentView.window, [PROPanel class]);
 
   return Napi::Boolean::New(info.Env(), true);
 }
@@ -122,15 +140,13 @@ Napi::Value MakeKeyWindow(const Napi::CallbackInfo& info) {
 
   if (!mainContentView) {
     NSLog(@"MAC-PANEL-WINDOW: Error: mainContentView is nil");
-    return Napi::Boolean::New(info.Env(), false);
+      return Napi::Boolean::New(info.Env(), false);
   }
 
-  NSWindow *nswindow = CreateWindow(mainContentView);
+  NSWindow* nswindow = mainContentView.window;
 
-  [nswindow makeKeyAndOrderFront:nil];
-  // Log and verify that this window is a key window:
-  [nswindow setCollectionBehavior:kCustomWindowCollectionBehavior];
-  [nswindow setLevel:NSScreenSaverWindowLevel];
+  [mainContentView.window makeKeyWindow];
+  [mainContentView.window makeMainWindow];
 
   NSLog(@"MAC-PANEL-WINDOW: Window made key - window: %@, isKeyWindow: %d", nswindow, nswindow.isKeyWindow);
 
@@ -140,22 +156,18 @@ Napi::Value MakeKeyWindow(const Napi::CallbackInfo& info) {
 Napi::Value MakeWindow(const Napi::CallbackInfo& info) {
   NSLog(@"MAC-PANEL-WINDOW: makeWindow");
   NSView *mainContentView = GetMainContentViewFromArgs(info);
+  NSWindow* nswindow = mainContentView.window;
 
-  if (!mainContentView) {
-    NSLog(@"MAC-PANEL-WINDOW: Error: mainContentView is nil");
+
+  // Convert the NSPanel class to whatever it was before
+  // If electronWindowClass is nil, then we can't convert it back, so we just return
+  if (!electronWindowClass) {
     return Napi::Boolean::New(info.Env(), false);
   }
-
-  NSWindow *nswindow = CreateWindow(mainContentView);
-
-  [nswindow setCollectionBehavior:kCustomWindowCollectionBehavior];
-  [nswindow setLevel:NSNormalWindowLevel];
-
-  NSLog(@"MAC-PANEL-WINDOW: Window made - window: %@, collectionBehavior: %lu, level: %ld",
-        nswindow, (unsigned long)nswindow.collectionBehavior, (long)nswindow.level);
-
+  object_setClass(nswindow, electronWindowClass);
   return Napi::Boolean::New(info.Env(), true);
 }
+
 
 Napi::Value HideInstant(const Napi::CallbackInfo& info) {
   NSLog(@"MAC-PANEL-WINDOW: hideInstant");
@@ -199,7 +211,7 @@ Napi::Object Init(Napi::Env env, Napi::Object exports) {
   exports.Set(Napi::String::New(env, "getWindowBackgroundColor"), Napi::Function::New(env, GetWindowBackgroundColor));
   exports.Set(Napi::String::New(env, "getLabelColor"), Napi::Function::New(env, GetLabelColor));
   exports.Set(Napi::String::New(env, "getTextColor"), Napi::Function::New(env, GetTextColor));
-  return exports;
+    return exports;
 }
 
 NODE_API_MODULE(addon, Init)
