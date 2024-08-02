@@ -38,3 +38,8 @@ export const getTextColor = () => {
   if (!isMac) return
   return addon.getTextColor()
 }
+
+export const setAppearance = (window: BrowserWindow, appearance: 'dark' | 'light' | 'auto') => {
+  if (!isMac) return
+  return addon.setAppearance(window.getNativeWindowHandle(), appearance)
+}

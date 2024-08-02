@@ -111,7 +111,7 @@ Napi::Value MakePanel(const Napi::CallbackInfo& info) {
   NSWindow *nswindow = [mainContentView window];
   nswindow.titlebarAppearsTransparent = true;
   nswindow.titleVisibility = (NSWindowTitleVisibility)1;
-  nswindow.backgroundColor = [[NSColor windowBackgroundColor] colorWithAlphaComponent:0.15];
+  nswindow.backgroundColor = [[NSColor windowBackgroundColor] colorWithAlphaComponent:1];
   nswindow.hasShadow = YES;
 
   NSButton *closeButton = [nswindow standardWindowButton:NSWindowCloseButton];
@@ -203,6 +203,32 @@ Napi::Value GetTextColor(const Napi::CallbackInfo& info) {
   return Napi::String::New(info.Env(), [[color hexadecimalValue] UTF8String]);
 }
 
+Napi::Value SetAppearance(const Napi::CallbackInfo& info) {
+  NSLog(@"MAC-PANEL-WINDOW: setAppearance");
+  NSView *mainContentView = GetMainContentViewFromArgs(info);
+  
+  if (!mainContentView) {
+    NSLog(@"MAC-PANEL-WINDOW: Error: mainContentView is nil");
+    return Napi::Boolean::New(info.Env(), false);
+  }
+
+  NSString *appearanceName = [NSString stringWithUTF8String:info[1].As<Napi::String>().Utf8Value().c_str()];
+  NSWindow *nswindow = [mainContentView window];
+  
+  if ([appearanceName isEqualToString:@"dark"]) {
+    nswindow.appearance = [NSAppearance appearanceNamed:NSAppearanceNameDarkAqua];
+  } else if ([appearanceName isEqualToString:@"light"]) {
+    nswindow.appearance = [NSAppearance appearanceNamed:NSAppearanceNameAqua];
+  } else if ([appearanceName isEqualToString:@"auto"]) {
+    nswindow.appearance = nil; // This will make the window follow the system appearance
+  } else {
+    NSLog(@"MAC-PANEL-WINDOW: Invalid appearance name: %@", appearanceName);
+    return Napi::Boolean::New(info.Env(), false);
+  }
+
+  return Napi::Boolean::New(info.Env(), true);
+}
+
 Napi::Object Init(Napi::Env env, Napi::Object exports) {
   exports.Set(Napi::String::New(env, "makePanel"), Napi::Function::New(env, MakePanel));
   exports.Set(Napi::String::New(env, "makeKeyWindow"), Napi::Function::New(env, MakeKeyWindow));
@@ -211,6 +237,7 @@ Napi::Object Init(Napi::Env env, Napi::Object exports) {
   exports.Set(Napi::String::New(env, "getWindowBackgroundColor"), Napi::Function::New(env, GetWindowBackgroundColor));
   exports.Set(Napi::String::New(env, "getLabelColor"), Napi::Function::New(env, GetLabelColor));
   exports.Set(Napi::String::New(env, "getTextColor"), Napi::Function::New(env, GetTextColor));
+  exports.Set(Napi::String::New(env, "setAppearance"), Napi::Function::New(env, SetAppearance));
     return exports;
 }
 
