@@ -55,16 +55,6 @@ const NSWindowCollectionBehavior kCustomWindowCollectionBehavior =
   return YES;
 }
 
-- (void)setDisableKeyOrMainWindow:(BOOL)disable {
-    // No-op or implement desired behavior
-    NSLog(@"setDisableKeyOrMainWindow called with: %d", disable);
-}
-
-- (id)forwardingTargetForSelector:(SEL)aSelector {
-    NSLog(@"forwardingTargetForSelector called with selector: %@", NSStringFromSelector(aSelector));
-    return [super forwardingTargetForSelector:aSelector];
-}
-
 // Override removeObserver:forKeyPath: to handle specific key paths gracefully
 - (void)removeObserver:(NSObject *)observer forKeyPath:(NSString *)keyPath context:(nullable void *)context {
     // macOS Big Sur attempts to remove an observer for the NSTitlebarView that doesn't exist.
@@ -189,13 +179,25 @@ Napi::Value MakeWindow(const Napi::CallbackInfo& info) {
     NSView *mainContentView = GetMainContentViewFromArgs(info);
     NSWindow* nswindow = mainContentView.window;
 
-    // Convert the PROPanel back to the original NSWindow class
-    if (electronWindowClass) {
-        object_setClass(nswindow, electronWindowClass);
-    } else {
-        NSLog(@"MAC-PANEL-WINDOW: Error: Original Electron window class not stored.");
-        return Napi::Boolean::New(info.Env(), false);
-    }
+    // Reset window properties to standard NSWindow behavior without changing class
+    nswindow.styleMask = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable | NSWindowStyleMaskResizable;
+    nswindow.collectionBehavior = NSWindowCollectionBehaviorDefault;
+    nswindow.level = NSNormalWindowLevel;
+
+    // Re-enable standard window buttons
+    [[nswindow standardWindowButton:NSWindowCloseButton] setEnabled:YES];
+    [[nswindow standardWindowButton:NSWindowMiniaturizeButton] setEnabled:YES];
+    [[nswindow standardWindowButton:NSWindowZoomButton] setEnabled:YES];
+
+    [[nswindow standardWindowButton:NSWindowCloseButton] setHidden:NO];
+    [[nswindow standardWindowButton:NSWindowMiniaturizeButton] setHidden:NO];
+    [[nswindow standardWindowButton:NSWindowZoomButton] setHidden:NO];
+
+    // Reset other properties that might have been changed
+    nswindow.titlebarAppearsTransparent = NO;
+    nswindow.titleVisibility = NSWindowTitleVisible;
+
+    NSLog(@"MAC-PANEL-WINDOW: Successfully reset to standard NSWindow");
 
     return Napi::Boolean::New(info.Env(), true);
 }
