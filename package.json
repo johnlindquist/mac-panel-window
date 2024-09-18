@@ -29,7 +29,7 @@
     "electron": "^30.0.1",
     "electron-rebuild": "^3.2.9",
     "esbuild": "^0.20.2",
-    "node-abi": "^3.60.0",
+    "node-abi": "^3.67.0",
     "node-gyp": "^10.1.0",
     "semantic-release": "^23.0.8",
     "typescript": "^5.4.5"
