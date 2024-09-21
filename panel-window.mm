@@ -6,10 +6,45 @@
 #include <uv.h>
 
 // Define a constant for the window's style combining several options:
+const NSWindowStyleMask customWindowStyleMask = 
+    NSWindowStyleMaskTitled | // The window will have a title bar.    
+    NSWindowStyleMaskResizable | // The window can be resized by the user.
+    NSWindowStyleMaskFullSizeContentView; // The window's content view will be the full size of the window, including the title bar area.
+
+// Define a constant for the window's collection behavior combining several options:
+const NSWindowCollectionBehavior customWindowCollectionBehavior = 
+  NSWindowCollectionBehaviorManaged | // The window participates in the automatic window management system.
+  NSWindowCollectionBehaviorFullScreenAuxiliary; // The window can appear on spaces designated for full screen applications.
+
+
+@interface CustomWindow : NSWindow
+@end
+
+@implementation CustomWindow
+
+- (NSWindowStyleMask)styleMask {
+    return customWindowStyleMask;
+}
+
+- (NSWindowCollectionBehavior)collectionBehavior {
+    return customWindowCollectionBehavior;
+}
+
+// Override necessary methods if needed
+- (BOOL)canBecomeKeyWindow {
+    return YES;
+}
+
+- (BOOL)canBecomeMainWindow {
+    return YES;
+}
+
+@end
+
+// Define a constant for the window's style combining several options:
 const NSWindowStyleMask kCustomWindowStyleMask = 
     NSWindowStyleMaskTitled | // The window will have a title bar.    
     NSWindowStyleMaskResizable | // The window can be resized by the user.
-    NSWindowStyleMaskTexturedBackground | // The window background is textured.
     NSWindowStyleMaskFullSizeContentView | // The window's content view will be the full size of the window, including the title bar area.
     NSWindowStyleMaskNonactivatingPanel; // The window does not activate the app when clicked.
 
@@ -24,8 +59,46 @@ const NSWindowCollectionBehavior kCustomWindowCollectionBehavior =
 @implementation PROPanel
 
 - (NSWindowStyleMask)styleMask {
-  return kCustomWindowStyleMask;
+    return NSWindowStyleMaskTitled | 
+           NSWindowStyleMaskResizable | 
+           NSWindowStyleMaskFullSizeContentView | 
+           NSWindowStyleMaskNonactivatingPanel;
 }
+
+// - (void)addObservers {
+//     @try {
+//         [self addObserver:self forKeyPath:@"_titlebarBackdropGroupName" options:0 context:nil];
+//     } @catch (NSException *exception) {
+//         NSLog(@"Exception adding observer: %@", exception);
+//     }
+// }
+
+// - (void)removeObservers {
+//     @try {
+//         [self removeObserver:self forKeyPath:@"_titlebarBackdropGroupName"];
+//     } @catch (NSException *exception) {
+//         NSLog(@"Exception removing observer: %@", exception);
+//     }
+// }
+
+// - (instancetype)initWithContentRect:(NSRect)contentRect
+//                           styleMask:(NSWindowStyleMask)style
+//                             backing:(NSBackingStoreType)buffering
+//                               defer:(BOOL)deferCreation {
+//     self = [super initWithContentRect:contentRect 
+//                             styleMask:style 
+//                               backing:buffering 
+//                                 defer:deferCreation];
+//     if (self) {
+//         [self addObservers];
+//     }
+//     return self;
+// }
+
+// - (void)dealloc {
+//     [self removeObservers];
+//     // [super dealloc];
+// }
 
 - (NSWindowCollectionBehavior)collectionBehavior {
   return kCustomWindowCollectionBehavior;
@@ -55,33 +128,15 @@ const NSWindowCollectionBehavior kCustomWindowCollectionBehavior =
   return YES;
 }
 
-// Override removeObserver:forKeyPath: to handle specific key paths gracefully
-- (void)removeObserver:(NSObject *)observer forKeyPath:(NSString *)keyPath context:(nullable void *)context {
-    // macOS Big Sur attempts to remove an observer for the NSTitlebarView that doesn't exist.
-    // This is due to us changing the class from NSWindow -> NSPanel at runtime, it's possible
-    // there is assumed setup that doesn't happen. Details of the exception this is avoiding are
-    // here: https://github.com/goabstract/electron-panel-window/issues/6
-    if ([keyPath isEqualToString:@"_titlebarBackdropGroupName"]) {
-        // Safely ignore the removal to avoid the crash
-        return;
-    }
-
-    @try {
-        if (context) {
-            [super removeObserver:observer forKeyPath:keyPath context:context];
-        } else {
-            [super removeObserver:observer forKeyPath:keyPath];
-        }
-    }
-    @catch (NSException *exception) {
-        NSLog(@"Failed to remove observer for keyPath %@: %@", keyPath, exception);
-        // Optionally handle the exception or log it for debugging
-    }
+- (void)setDisableKeyOrMainWindow:(BOOL)disable {
+    // No-op or implement desired behavior
+    NSLog(@"setDisableKeyOrMainWindow called with: %d", disable);
 }
 
-- (void)removeObserver:(NSObject *)observer forKeyPath:(NSString *)keyPath {
-    [self removeObserver:observer forKeyPath:keyPath context:NULL];
-}
+// - (id)forwardingTargetForSelector:(SEL)aSelector {
+//     NSLog(@"forwardingTargetForSelector called with selector: %@", NSStringFromSelector(aSelector));
+//     return [super forwardingTargetForSelector:aSelector];
+// }
 
 @end
 
@@ -150,6 +205,9 @@ Napi::Value MakePanel(const Napi::CallbackInfo& info) {
     // Convert the NSWindow class to PROPanel
     object_setClass(nswindow, [PROPanel class]);
 
+    // nswindow.styleMask = NSWindowStyleMaskTitled | NSWindowStyleMaskResizable | NSWindowStyleMaskFullSizeContentView | NSWindowStyleMaskNonactivatingPanel;
+
+
     return Napi::Boolean::New(info.Env(), true);
 }
 
@@ -174,15 +232,26 @@ Napi::Value MakeKeyWindow(const Napi::CallbackInfo& info) {
     return Napi::Boolean::New(info.Env(), true);
 }
 
+Napi::Value PrepForClose(const Napi::CallbackInfo& info) {
+    NSLog(@"MAC-PANEL-WINDOW: prepForClose");
+    NSView *mainContentView = GetMainContentViewFromArgs(info);
+    NSWindow* nswindow = mainContentView.window;
+
+    // Convert the PROPanel back to the original NSWindow class
+    if (electronWindowClass) {
+        object_setClass(nswindow, electronWindowClass);
+    } else {
+        NSLog(@"MAC-PANEL-WINDOW: Error: Original Electron window class not stored.");
+        return Napi::Boolean::New(info.Env(), false);
+    }
+
+    return Napi::Boolean::New(info.Env(), true);
+}
+
 Napi::Value MakeWindow(const Napi::CallbackInfo& info) {
     NSLog(@"MAC-PANEL-WINDOW: makeWindow");
     NSView *mainContentView = GetMainContentViewFromArgs(info);
     NSWindow* nswindow = mainContentView.window;
-
-    // Reset window properties to standard NSWindow behavior without changing class
-    nswindow.styleMask = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable | NSWindowStyleMaskResizable;
-    nswindow.collectionBehavior = NSWindowCollectionBehaviorDefault;
-    nswindow.level = NSNormalWindowLevel;
 
     // Re-enable standard window buttons
     [[nswindow standardWindowButton:NSWindowCloseButton] setEnabled:YES];
@@ -197,7 +266,11 @@ Napi::Value MakeWindow(const Napi::CallbackInfo& info) {
     nswindow.titlebarAppearsTransparent = NO;
     nswindow.titleVisibility = NSWindowTitleVisible;
 
-    NSLog(@"MAC-PANEL-WINDOW: Successfully reset to standard NSWindow");
+    object_setClass(nswindow, [CustomWindow class]);
+    // nswindow.level = NSNormalWindowLevel;
+
+
+
 
     return Napi::Boolean::New(info.Env(), true);
 }
@@ -278,6 +351,7 @@ Napi::Object Init(Napi::Env env, Napi::Object exports) {
     exports.Set(Napi::String::New(env, "getLabelColor"), Napi::Function::New(env, GetLabelColor));
     exports.Set(Napi::String::New(env, "getTextColor"), Napi::Function::New(env, GetTextColor));
     exports.Set(Napi::String::New(env, "setAppearance"), Napi::Function::New(env, SetAppearance));
+    exports.Set(Napi::String::New(env, "prepForClose"), Napi::Function::New(env, PrepForClose));
     return exports;
 }
 
