@@ -39,6 +39,10 @@ const NSWindowCollectionBehavior customWindowCollectionBehavior =
     return YES;
 }
 
+- (void)disableKeyOrMainWindow {
+    NSLog(@"disableKeyOrMainWindow called on CustomWindow");
+}
+
 @end
 
 // Define a constant for the window's style combining several options:
@@ -131,6 +135,11 @@ const NSWindowCollectionBehavior kCustomWindowCollectionBehavior =
 - (void)setDisableKeyOrMainWindow:(BOOL)disable {
     // No-op or implement desired behavior
     NSLog(@"setDisableKeyOrMainWindow called with: %d", disable);
+}
+
+
+- (void)disableKeyOrMainWindow {
+    NSLog(@"disableKeyOrMainWindow called on PROPanel");
 }
 
 // - (id)forwardingTargetForSelector:(SEL)aSelector {
