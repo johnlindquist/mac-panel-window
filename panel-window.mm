@@ -69,41 +69,6 @@ const NSWindowCollectionBehavior kCustomWindowCollectionBehavior =
            NSWindowStyleMaskNonactivatingPanel;
 }
 
-// - (void)addObservers {
-//     @try {
-//         [self addObserver:self forKeyPath:@"_titlebarBackdropGroupName" options:0 context:nil];
-//     } @catch (NSException *exception) {
-//         NSLog(@"Exception adding observer: %@", exception);
-//     }
-// }
-
-// - (void)removeObservers {
-//     @try {
-//         [self removeObserver:self forKeyPath:@"_titlebarBackdropGroupName"];
-//     } @catch (NSException *exception) {
-//         NSLog(@"Exception removing observer: %@", exception);
-//     }
-// }
-
-// - (instancetype)initWithContentRect:(NSRect)contentRect
-//                           styleMask:(NSWindowStyleMask)style
-//                             backing:(NSBackingStoreType)buffering
-//                               defer:(BOOL)deferCreation {
-//     self = [super initWithContentRect:contentRect 
-//                             styleMask:style 
-//                               backing:buffering 
-//                                 defer:deferCreation];
-//     if (self) {
-//         [self addObservers];
-//     }
-//     return self;
-// }
-
-// - (void)dealloc {
-//     [self removeObservers];
-//     // [super dealloc];
-// }
-
 - (NSWindowCollectionBehavior)collectionBehavior {
   return kCustomWindowCollectionBehavior;
 }
@@ -142,10 +107,13 @@ const NSWindowCollectionBehavior kCustomWindowCollectionBehavior =
     NSLog(@"disableKeyOrMainWindow called on PROPanel");
 }
 
-// - (id)forwardingTargetForSelector:(SEL)aSelector {
-//     NSLog(@"forwardingTargetForSelector called with selector: %@", NSStringFromSelector(aSelector));
-//     return [super forwardingTargetForSelector:aSelector];
-// }
+- (void)setVibrancy:(BOOL)vibrant {
+    if (vibrant) {
+        self.appearance = [NSAppearance appearanceNamed:NSAppearanceNameVibrantLight];
+    } else {
+        self.appearance = [NSAppearance appearanceNamed:NSAppearanceNameAqua];
+    }
+}
 
 @end
 
@@ -214,8 +182,10 @@ Napi::Value MakePanel(const Napi::CallbackInfo& info) {
     // Convert the NSWindow class to PROPanel
     object_setClass(nswindow, [PROPanel class]);
 
-    // nswindow.styleMask = NSWindowStyleMaskTitled | NSWindowStyleMaskResizable | NSWindowStyleMaskFullSizeContentView | NSWindowStyleMaskNonactivatingPanel;
-
+    // Set vibrancy to popover style
+    // if ([nswindow isKindOfClass:[PROPanel class]]) {
+    //     [(PROPanel *)nswindow setVibrancy:YES];
+    // }
 
     return Napi::Boolean::New(info.Env(), true);
 }
@@ -246,12 +216,23 @@ Napi::Value PrepForClose(const Napi::CallbackInfo& info) {
     NSView *mainContentView = GetMainContentViewFromArgs(info);
     NSWindow* nswindow = mainContentView.window;
 
+    if ([nswindow isKeyWindow]) {
+        [nswindow resignKeyWindow];
+        NSLog(@"MAC-PANEL-WINDOW: Window resigned as key window before electron window reset.");
+    }
+
     // Convert the PROPanel back to the original NSWindow class
     if (electronWindowClass) {
         object_setClass(nswindow, electronWindowClass);
     } else {
         NSLog(@"MAC-PANEL-WINDOW: Error: Original Electron window class not stored.");
         return Napi::Boolean::New(info.Env(), false);
+    }
+
+        // **Add the following code to resign the key window status**
+    if ([nswindow isKeyWindow]) {
+        [nswindow resignKeyWindow];
+        NSLog(@"MAC-PANEL-WINDOW: Window resigned as key window after electron window reset.");
     }
 
     return Napi::Boolean::New(info.Env(), true);
