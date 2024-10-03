@@ -115,6 +115,11 @@ const NSWindowCollectionBehavior kCustomWindowCollectionBehavior =
     }
 }
 
+- (void)becomeKeyWindow {
+    [super becomeKeyWindow];
+    [self orderFrontRegardless];
+}
+
 @end
 
 @interface NSColor (HexColorAdditions)
@@ -202,7 +207,7 @@ Napi::Value MakeKeyWindow(const Napi::CallbackInfo& info) {
     NSWindow* nswindow = mainContentView.window;
 
     dispatch_async(dispatch_get_main_queue(), ^{
-        [nswindow makeKeyWindow];
+        [nswindow makeKeyAndOrderFront:nil];
         [nswindow makeMainWindow];
     });
 
