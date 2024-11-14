@@ -207,11 +207,16 @@ Napi::Value MakeKeyWindow(const Napi::CallbackInfo& info) {
     NSWindow* nswindow = mainContentView.window;
 
     dispatch_async(dispatch_get_main_queue(), ^{
-        [nswindow makeKeyAndOrderFront:nil];
-        [nswindow makeMainWindow];
+        // Use NSScreenSaverWindowLevel for highest visibility
+        [nswindow setLevel:NSScreenSaverWindowLevel];
+
+        // Ensure window is visible and ordered to the front without activating the app
+        [nswindow orderFrontRegardless]; 
+        [nswindow makeKeyWindow]; 
     });
 
-    NSLog(@"MAC-PANEL-WINDOW: Window made key - window: %@, isKeyWindow: %d", nswindow, nswindow.isKeyWindow);
+    NSLog(@"MAC-PANEL-WINDOW: Window made key - window: %@, isKeyWindow: %d, level: %ld", 
+          nswindow, nswindow.isKeyWindow, (long)nswindow.level);
 
     return Napi::Boolean::New(info.Env(), true);
 }
