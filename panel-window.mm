@@ -256,11 +256,19 @@ Napi::Value MakeWindow(const Napi::CallbackInfo& info) {
     nswindow.titlebarAppearsTransparent = NO;
     nswindow.titleVisibility = NSWindowTitleVisible;
 
+    // Convert back to CustomWindow
     object_setClass(nswindow, [CustomWindow class]);
-    // nswindow.level = NSNormalWindowLevel;
-
-
-
+    
+    // Explicitly set the window level back to normal
+    nswindow.level = NSNormalWindowLevel;
+    
+    // Reset the window collection behavior to default
+    nswindow.collectionBehavior = NSWindowCollectionBehaviorDefault;
+    
+    // If the window is key window, resign it
+    if ([nswindow isKeyWindow]) {
+        [nswindow resignKeyWindow];
+    }
 
     return Napi::Boolean::New(info.Env(), true);
 }
