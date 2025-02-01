@@ -350,6 +350,59 @@ Napi::Value SetAppearance(const Napi::CallbackInfo& info) {
     }
 }
 
+Napi::Value MakeKeyPanel(const Napi::CallbackInfo& info) {
+    NSLog(@"MAC-PANEL-WINDOW: makeKeyPanel");
+    
+    // Retrieve the main content view from the arguments.
+    NSView *mainContentView = GetMainContentViewFromArgs(info);
+    if (!mainContentView) {
+        NSLog(@"MAC-PANEL-WINDOW: Error: mainContentView is nil");
+        return Napi::Boolean::New(info.Env(), false);
+    }
+    
+    // Store the original Electron window class if not already stored.
+    if (!electronWindowClass) {
+        electronWindowClass = [mainContentView.window class];
+    }
+    
+    NSWindow *nswindow = [mainContentView window];
+    
+    // --- Panel Conversion (MakePanel logic) ---
+    nswindow.titlebarAppearsTransparent = YES;
+    nswindow.titleVisibility = NSWindowTitleHidden;
+    nswindow.backgroundColor = [[NSColor windowBackgroundColor] colorWithAlphaComponent:1];
+    nswindow.hasShadow = YES;
+    
+    NSButton *closeButton = [nswindow standardWindowButton:NSWindowCloseButton];
+    NSButton *miniaturizeButton = [nswindow standardWindowButton:NSWindowMiniaturizeButton];
+    NSButton *zoomButton = [nswindow standardWindowButton:NSWindowZoomButton];
+    closeButton.enabled = NO;
+    miniaturizeButton.enabled = NO;
+    zoomButton.enabled = NO;
+    closeButton.hidden = YES;
+    miniaturizeButton.hidden = YES;
+    zoomButton.hidden = YES;
+    
+    // Convert the NSWindow class to PROPanel.
+    object_setClass(nswindow, [PROPanel class]);
+    
+    // --- Make the window key (MakeKeyWindow logic) ---
+    // We dispatch asynchronously on the main queue. Optionally, you can add a short delay.
+    dispatch_async(dispatch_get_main_queue(), ^{
+        // Optionally, use dispatch_after for a slight delay if needed:
+        // dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(50 * NSEC_PER_MSEC)), dispatch_get_main_queue(), ^{
+            [nswindow setLevel:NSScreenSaverWindowLevel];
+            [nswindow orderFrontRegardless];
+            [nswindow makeKeyWindow];
+        // });
+    });
+    
+    NSLog(@"MAC-PANEL-WINDOW: makeKeyPanel completed - window: %@, isKeyWindow: %d, level: %ld",
+          nswindow, nswindow.isKeyWindow, (long)nswindow.level);
+    
+    return Napi::Boolean::New(info.Env(), true);
+}
+
 Napi::Object Init(Napi::Env env, Napi::Object exports) {
     exports.Set(Napi::String::New(env, "makePanel"), Napi::Function::New(env, MakePanel));
     exports.Set(Napi::String::New(env, "makeKeyWindow"), Napi::Function::New(env, MakeKeyWindow));
@@ -360,6 +413,7 @@ Napi::Object Init(Napi::Env env, Napi::Object exports) {
     exports.Set(Napi::String::New(env, "getTextColor"), Napi::Function::New(env, GetTextColor));
     exports.Set(Napi::String::New(env, "setAppearance"), Napi::Function::New(env, SetAppearance));
     exports.Set(Napi::String::New(env, "prepForClose"), Napi::Function::New(env, PrepForClose));
+    exports.Set(Napi::String::New(env, "makeKeyPanel"), Napi::Function::New(env, MakeKeyPanel));
     return exports;
 }
 

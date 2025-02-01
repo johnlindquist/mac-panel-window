@@ -9,3 +9,4 @@ export declare const getTextColor: () => any;
 export declare const setAppearance: (window: BrowserWindow, appearance: "dark" | "light" | "auto") => any;
 export declare const removeCanJoinAllSpaces: (window: BrowserWindow) => any;
 export declare const prepForClose: (window: BrowserWindow) => any;
+export declare const makeKeyPanel: (window: BrowserWindow) => any;
