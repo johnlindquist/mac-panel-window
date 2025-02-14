@@ -267,7 +267,7 @@ Napi::Value MakeWindow(const Napi::CallbackInfo& info) {
     nswindow.titleVisibility = NSWindowTitleVisible;
 
     // Convert back to CustomWindow
-    object_setClass(nswindow, [CustomWindow class]);
+    // object_setClass(nswindow, [CustomWindow class]);
     
     // Explicitly set the window level back to normal
     nswindow.level = NSNormalWindowLevel;
@@ -384,18 +384,10 @@ Napi::Value MakeKeyPanel(const Napi::CallbackInfo& info) {
     zoomButton.hidden = YES;
     
     // Convert the NSWindow class to PROPanel.
-    object_setClass(nswindow, [PROPanel class]);
+    // object_setClass(nswindow, [PROPanel class]);
     
     // --- Make the window key (MakeKeyWindow logic) ---
     // We dispatch asynchronously on the main queue. Optionally, you can add a short delay.
-    dispatch_async(dispatch_get_main_queue(), ^{
-        // Optionally, use dispatch_after for a slight delay if needed:
-        // dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(50 * NSEC_PER_MSEC)), dispatch_get_main_queue(), ^{
-            [nswindow setLevel:NSScreenSaverWindowLevel];
-            [nswindow orderFrontRegardless];
-            [nswindow makeKeyWindow];
-        // });
-    });
     
     NSLog(@"MAC-PANEL-WINDOW: makeKeyPanel completed - window: %@, isKeyWindow: %d, level: %ld",
           nswindow, nswindow.isKeyWindow, (long)nswindow.level);
