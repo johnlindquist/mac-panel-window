@@ -388,6 +388,8 @@ Napi::Value MakeKeyPanel(const Napi::CallbackInfo& info) {
     
     // --- Make the window key (MakeKeyWindow logic) ---
     // We dispatch asynchronously on the main queue. Optionally, you can add a short delay.
+
+    // TODO: Determine if we need any of the old focus logic here.
     
     NSLog(@"MAC-PANEL-WINDOW: makeKeyPanel completed - window: %@, isKeyWindow: %d, level: %ld",
           nswindow, nswindow.isKeyWindow, (long)nswindow.level);
