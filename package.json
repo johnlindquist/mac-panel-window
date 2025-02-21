@@ -55,6 +55,7 @@
       "+([0-9]).x",
       "main",
       "next",
+      "V1",
       {
         "name": "beta",
         "prerelease": true
