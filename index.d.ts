@@ -10,3 +10,4 @@ export declare const setAppearance: (window: BrowserWindow, appearance: "dark" |
 export declare const removeCanJoinAllSpaces: (window: BrowserWindow) => any;
 export declare const prepForClose: (window: BrowserWindow) => any;
 export declare const makeKeyPanel: (window: BrowserWindow) => any;
+export declare const blurInstant: (window: BrowserWindow) => any;

@@ -304,6 +304,43 @@ Napi::Value HideInstant(const Napi::CallbackInfo& info) {
     return Napi::Boolean::New(info.Env(), true);
 }
 
+Napi::Value BlurInstant(const Napi::CallbackInfo& info) {
+    [[NSApplication sharedApplication] deactivate];
+    NSLog(@"MAC-PANEL-WINDOW: makeWindow");
+    NSView *mainContentView = GetMainContentViewFromArgs(info);
+    NSWindow* nswindow = mainContentView.window;
+
+    // Re-enable standard window buttons
+    [[nswindow standardWindowButton:NSWindowCloseButton] setEnabled:YES];
+    [[nswindow standardWindowButton:NSWindowMiniaturizeButton] setEnabled:YES];
+    [[nswindow standardWindowButton:NSWindowZoomButton] setEnabled:YES];
+
+    [[nswindow standardWindowButton:NSWindowCloseButton] setHidden:NO];
+    [[nswindow standardWindowButton:NSWindowMiniaturizeButton] setHidden:NO];
+    [[nswindow standardWindowButton:NSWindowZoomButton] setHidden:NO];
+
+    // Reset other properties that might have been changed
+    nswindow.titlebarAppearsTransparent = NO;
+    nswindow.titleVisibility = NSWindowTitleVisible;
+
+    // Convert back to CustomWindow
+    object_setClass(nswindow, [CustomWindow class]);
+    
+    // Explicitly set the window level back to normal
+    nswindow.level = NSNormalWindowLevel;
+    
+    // Reset the window collection behavior to default
+    nswindow.collectionBehavior = NSWindowCollectionBehaviorDefault;
+    
+    // If the window is key window, resign it
+    if ([nswindow isKeyWindow]) {
+        [nswindow resignKeyWindow];
+    }
+
+    return Napi::Boolean::New(info.Env(), true);
+}
+
+
 Napi::Value GetWindowBackgroundColor(const Napi::CallbackInfo& info) {
     NSColor *color = [NSColor windowBackgroundColor];
     return Napi::String::New(info.Env(), [[color hexadecimalValue] UTF8String]);
@@ -408,6 +445,7 @@ Napi::Object Init(Napi::Env env, Napi::Object exports) {
     exports.Set(Napi::String::New(env, "makeKeyWindow"), Napi::Function::New(env, MakeKeyWindow));
     exports.Set(Napi::String::New(env, "makeWindow"), Napi::Function::New(env, MakeWindow));
     exports.Set(Napi::String::New(env, "hideInstant"), Napi::Function::New(env, HideInstant));
+    exports.Set(Napi::String::New(env, "blurInstant"), Napi::Function::New(env, BlurInstant));
     exports.Set(Napi::String::New(env, "getWindowBackgroundColor"), Napi::Function::New(env, GetWindowBackgroundColor));
     exports.Set(Napi::String::New(env, "getLabelColor"), Napi::Function::New(env, GetLabelColor));
     exports.Set(Napi::String::New(env, "getTextColor"), Napi::Function::New(env, GetTextColor));

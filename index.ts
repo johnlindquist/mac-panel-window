@@ -61,3 +61,8 @@ export const makeKeyPanel = (window: BrowserWindow) => {
 	if (!isMac) return;
 	return addon.makeKeyPanel(window.getNativeWindowHandle());
 };
+
+export const blurInstant = (window: BrowserWindow) => {
+  if (!isMac) return;
+  return addon.blurInstant(window.getNativeWindowHandle());
+};
