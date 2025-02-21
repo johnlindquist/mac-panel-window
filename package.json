@@ -6,7 +6,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "description": "Access the macOS panel-window from Node.js",
+  "description": "A native macOS panel window for Node.js - v1 branch",
   "main": "index.cjs",
   "module": "index.js",
   "exports": {
